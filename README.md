@@ -27,6 +27,10 @@ OpenAI; API usage is billed to that user. Results appear for one review/save,
 with corrections behind **Edit**. The intended product uses ChatGPT account and
 intelligence integration without requiring a user API key; BYOK exercises the
 flow until that integration is available. No operator credential or key relay is included.
+Open **Settings** to enter a key before or after selecting photos. Keys are held
+only for this visit; Close, Cancel or Escape discards an unapplied replacement.
+The upload card keeps demo/privacy details in disclosures, while the provider,
+separate API billing and explicit sending consent remain visible before analysis.
 ChatGPT-native standalone inference and common Library/Space storage remain
 unavailable. No real key or paid inference was used in validation. This document
 supports the pending official access application; it does not claim approval or
