@@ -24,34 +24,51 @@ type Options = {
 /** Same DOM review implementation in the website and isolated MCP iframe. No innerHTML/eval. */
 export function mountBatchUI(root: HTMLElement, options: Options) {
     const model = options.model, w = options.window, doc = root.ownerDocument, t = (key: string) => key.includes(';') ? key.split(';').map(k => model.t(k, options.locale())).join('; ') : model.t(key, options.locale());
-    let input: HealthBatch = model.blank(), files: File[] = [], prepared: PreparedBatch | null = null, previewUrls: string[] = [], epoch = 0, busy = false, open = false, statusKey = '', detail = '', draft: BatchDraft | null = null, base: BatchDraft | null = null, requestKey = '', consent = false, allowDraft = false, pending: {
+    let input: HealthBatch = model.blank(), files: File[] = [], prepared: PreparedBatch | null = null, previewUrls: string[] = [], epoch = 0, disposed = false, busy = false, open = false, statusKey = '', detail = '', draft: BatchDraft | null = null, base: BatchDraft | null = null, requestKey = '', consent = false, allowDraft = false, pending: {
         action: string;
         args: Record<string, unknown>;
     } | null = null, data: BatchData = { batchRecords: [], batchDrafts: [], batchNextOffset: null };
+    const namespace = options.namespace(), trash = options.trash?.() === true;
+    const active = () => !disposed && namespace === options.namespace() && trash === (options.trash?.() === true);
+    // Invalidate every asynchronous continuation, including providers that ignore cancellation.
+    const awaitActive = async <T,>(work: () => Promise<T>): Promise<T> => {
+        if (!active()) throw new Error('inactivePanel');
+        const generation = epoch;
+        try {
+            const value = await work();
+            if (!active() || generation !== epoch) throw new Error('inactivePanel');
+            return value;
+        } catch (error) {
+            if (!active() || generation !== epoch) throw new Error('inactivePanel');
+            throw error;
+        }
+    };
+    const call = (action: string, args: Record<string, unknown>) => awaitActive(() => options.call(action, args));
     const append = (parent: Node, ...children: Node[]) => { for (const child of children)
         parent.appendChild(child); };
     const el = <K extends keyof HTMLElementTagNameMap>(tag: K, text?: string) => { const n = doc.createElement(tag); if (text !== undefined)
         n.textContent = text; return n; };
-    const button = (key: string, fn: () => void | Promise<void>) => { const b = el('button', t(key)); b.type = 'button'; b.onclick = () => { void fn(); }; return b; };
+    const button = (key: string, fn: () => void | Promise<void>) => { const b = el('button', t(key)); b.type = 'button'; b.onclick = () => { if (active()) void fn(); }; return b; };
     const release = () => { previewUrls.forEach(u => w.URL.revokeObjectURL(u)); previewUrls = []; };
-    const setStatus = (key: string, error = '') => { statusKey = key; detail = error; paint(); };
+    const setStatus = (key: string, error = '') => { if (!active()) return; statusKey = key; detail = error; paint(); };
     const changed = () => { draft = null; requestKey = ''; input.groupingConfirmed = false; };
     const sessionName = (s: MeasurementSession) => '#' + (input.sessions.indexOf(s) + 1) + ' · ' + (s.date || t('unknown')) + ' ' + (s.time || t('dateOnly')) + ' · ' + s.id.slice(0, 8);
     const newSession = (): MeasurementSession => ({ id: w.crypto.randomUUID(), date: null, time: null, timezone: null, precision: 'date', confirmed: false, note: '', observations: [] });
-    const edit = (d: BatchDraft) => { epoch++; release(); files = []; prepared = null; input = JSON.parse(JSON.stringify(d.batch)); draft = d; base = d; requestKey = d.requestKey; pending = null; open = true; setStatus(''); };
+    const edit = (d: BatchDraft) => { if (!active()) return; epoch++; release(); files = []; prepared = null; input = JSON.parse(JSON.stringify(d.batch)); draft = d; base = d; requestKey = d.requestKey; pending = null; open = true; setStatus(''); };
     const captureSources = (p: PreparedBatch) => p.images.map(photo => ({ id: 'image-' + photo.sourceHash, kind: 'unknown' as const, capture: { status: photo.metadata.status, exifDateTime: photo.metadata.exifDateTime, exifOffset: photo.metadata.exifOffset, userDate: null, userTime: null, userTimezone: null, reviewed: false, note: '' } }));
-    async function reload(more = false) { const ns = options.namespace(), generation = epoch; const result = await options.call('list', { namespace: ns, trash: options.trash?.() === true, ...(more ? { offset: data.batchNextOffset } : {}) }) as unknown as BatchData; if (ns !== options.namespace() || generation !== epoch)
+    async function reload(more = false) { const ns = options.namespace(), generation = epoch; const result = await call('list', { namespace: ns, trash: options.trash?.() === true, ...(more ? { offset: data.batchNextOffset } : {}) }) as unknown as BatchData; if (ns !== options.namespace() || generation !== epoch)
         return; data = { ...result, batchRecords: more ? [...data.batchRecords, ...result.batchRecords] : result.batchRecords }; if (pending?.action === 'draft') {
         const found = data.batchDrafts.find(d => d.requestKey === pending!.args.requestKey);
         if (found)
             edit(found);
     } paint(); }
-    const run = async (fn: () => Promise<void>) => { if (busy)
+    const run = async (fn: () => Promise<void>) => { if (!active() || busy)
         return; busy = true; paint(); try {
         await fn();
     }
     catch (e) {
         const msg = (e as Error).message;
+        if (!active() || msg === 'inactivePanel') return;
         if (msg === 'cancelled') {
             statusKey = 'cancelNote';
             detail = '';
@@ -66,7 +83,7 @@ export function mountBatchUI(root: HTMLElement, options: Options) {
         busy = false;
         paint();
     } };
-    const mutate = (fn: () => void) => { if (busy || pending)
+    const mutate = (fn: () => void) => { if (!active() || busy || pending)
         return; try {
         fn();
         changed();
@@ -76,7 +93,7 @@ export function mountBatchUI(root: HTMLElement, options: Options) {
         setStatus('', (e as Error).message);
     } };
     function field(container: HTMLElement, key: string, value: string | null, update: (v: string) => void, type = 'text') { const l = el('label'), i = el('input'); append(l, el('span', t(key))); i.type = type; i.value = value || ''; i.onchange = () => mutate(() => update(i.value)); append(l, i); append(container, l); return i; }
-    function check(container: HTMLElement, key: string, checked: boolean, update: (v: boolean) => void) { const l = el('label'), i = el('input'); i.type = 'checkbox'; i.checked = checked; i.onchange = () => { if (busy || pending)
+    function check(container: HTMLElement, key: string, checked: boolean, update: (v: boolean) => void) { const l = el('label'), i = el('input'); i.type = 'checkbox'; i.checked = checked; i.onchange = () => { if (!active() || busy || pending)
         return; update(i.checked); draft = null; requestKey = ''; paint(); }; append(l, i, el('span', t(key))); append(container, l); }
     function select(container: HTMLElement, key: string, value: string, choices: [
         string,
@@ -166,9 +183,9 @@ export function mountBatchUI(root: HTMLElement, options: Options) {
             const cleaned = model.clean(input);
             requestKey = requestKey || (base ? base.requestKey.slice(0, 80) + '-' + w.crypto.randomUUID() : prepared?.key || 'manual-' + w.crypto.randomUUID());
             pending = { action: 'draft', args: { namespace: options.namespace(), synthetic: options.namespace() === 'demo', userProvided: options.namespace() === 'real', requestKey, batch: cleaned, ...(base ? { replacesDraftId: base.id, expectedDigest: base.digest } : {}) } };
-        } const result = await options.call(pending.action, pending.args); const saved = result.draft as BatchDraft; input = saved.batch; draft = saved; base = saved; pending = null; await reload(); })));
+        } const result = await call(pending.action, pending.args); const saved = result.draft as BatchDraft; input = saved.batch; draft = saved; base = saved; pending = null; await reload(); })));
         const save = button('save', () => run(async () => { if (!draft)
-            return; pending = { action: 'confirm', args: { draftId: draft.id, expectedDigest: draft.digest, confirmed: true } }; const result = await options.call('confirm', pending.args); const record = result.record as SavedBatch; const verified = await options.call('list', { namespace: options.namespace(), batchId: record.id }); const read = verified.record as SavedBatch; if (read.id !== record.id || read.digest !== draft.digest || JSON.stringify(read.batch) !== JSON.stringify(draft.batch))
+            return; pending = { action: 'confirm', args: { draftId: draft.id, expectedDigest: draft.digest, confirmed: true } }; const result = await call('confirm', pending.args); const record = result.record as SavedBatch; const verified = await call('list', { namespace: options.namespace(), batchId: record.id }); const read = verified.record as SavedBatch; if (read.id !== record.id || read.digest !== draft.digest || JSON.stringify(read.batch) !== JSON.stringify(draft.batch))
             throw new Error('stale'); pending = null; statusKey = result.deleted ? 'deletedReplay' : 'saved'; draft = null; base = null; open = false; release(); prepared = null; files = []; await reload(); }));
         save.className = 'primary';
         save.disabled = !draft || issues.length > 0 || busy || !!pending;
@@ -194,7 +211,7 @@ export function mountBatchUI(root: HTMLElement, options: Options) {
             evidence.textContent = JSON.stringify(r.batch, null, 2);
             append(card, evidence);
             append(card, button(r.deleted_at ? 'restore' : 'trash', () => run(async () => { if (!w.confirm(t('confirmAction')))
-                return; await options.call(r.deleted_at ? 'restore' : 'delete', { batchId: r.id, requestKey: w.crypto.randomUUID(), confirmed: true }); await reload(); })));
+                return; await call(r.deleted_at ? 'restore' : 'delete', { batchId: r.id, requestKey: w.crypto.randomUUID(), confirmed: true }); await reload(); })));
             append(parent, card);
         }
         for (const g of model.trends(data.batchRecords)) {
@@ -221,6 +238,7 @@ export function mountBatchUI(root: HTMLElement, options: Options) {
             append(parent, el('p', t('partialList')), button('more', () => run(() => reload(true))));
     }
     function paint() {
+        if (!active()) return;
         root.replaceChildren();
         root.className = 'batch-panel';
         append(root, el('h2', t('title')), el('p', t('limits')), el('p', t('destination')));
@@ -232,14 +250,14 @@ export function mountBatchUI(root: HTMLElement, options: Options) {
         picker.accept = 'image/jpeg,image/png,image/webp';
         picker.setAttribute('aria-label', t('select'));
         picker.disabled = busy || !!pending;
-        picker.onchange = () => { if (busy || pending)
+        picker.onchange = () => { if (!active() || busy || pending)
             return; epoch++; release(); files = Array.from(picker.files || []); consent = false; allowDraft = false; prepared = null; draft = null; base = null; requestKey = ''; open = true; input = model.blank(); input.sessions = [newSession()]; setStatus(''); };
         append(root, picker);
         const previews = el('div');
         files.forEach((f, i) => { const card = el('div'); append(card, el('span', '#' + (i + 1) + ' · ' + Math.ceil(f.size / 1024) + ' KB')); const img = el('img'); img.alt = '#' + (i + 1); if (!previewUrls[i])
             previewUrls[i] = w.URL.createObjectURL(f); img.src = previewUrls[i]; img.width = 80; append(card, img); const rm = button('remove', () => { epoch++; release(); files = files.filter((_, j) => j !== i); consent = false; allowDraft = false; prepared = null; input = model.blank(); input.sessions = [newSession()]; changed(); paint(); }); rm.disabled = busy || !!pending; append(card, rm); append(previews, card); });
         append(root, previews);
-        const prepare = button('reading', () => run(async () => { const generation = ++epoch; statusKey = 'preparing'; prepared = await options.prepare(files, () => generation !== epoch); input.sources = captureSources(prepared); input.sessions = [newSession()]; input.groupingConfirmed = false; draft = null; base = null; requestKey = ''; open = true; statusKey = ''; detail = prepared.duplicates.length ? t('duplicate') : ''; }));
+        const prepare = button('reading', () => run(async () => { const generation = ++epoch; statusKey = 'preparing'; prepared = await awaitActive(() => options.prepare(files, () => !active() || generation !== epoch)); input.sources = captureSources(prepared); input.sessions = [newSession()]; input.groupingConfirmed = false; draft = null; base = null; requestKey = ''; open = true; statusKey = ''; detail = prepared.duplicates.length ? t('duplicate') : ''; }));
         prepare.disabled = !files.length || busy || !!pending || !!prepared;
         append(root, prepare);
         if (options.analyze) {
@@ -248,17 +266,17 @@ export function mountBatchUI(root: HTMLElement, options: Options) {
             check(permissions, 'consent', consent, v => consent = v);
             check(permissions, 'allowDraft', allowDraft, v => allowDraft = v);
             const analyze = button('analyze', () => run(async () => { if (!consent)
-                throw new Error('consent'); const generation = epoch, ns = options.namespace(); const wasPrepared = prepared !== null; const ready = prepared || await options.prepare(files, () => generation !== epoch); prepared = ready; if (!wasPrepared) {
+                throw new Error('consent'); const generation = epoch, ns = options.namespace(); const wasPrepared = prepared !== null; const ready = prepared || await awaitActive(() => options.prepare(files, () => !active() || generation !== epoch)); prepared = ready; if (!wasPrepared) {
                 input.sources = captureSources(ready);
                 input.sessions = [newSession()];
                 input.groupingConfirmed = false;
             } if (generation !== epoch)
-                throw new Error('cancelled'); await options.analyze!(ready, { allowDraft, namespace: ns, cancelled: () => generation !== epoch }); statusKey = 'accepted'; await reload(); }));
+                throw new Error('cancelled'); await awaitActive(() => options.analyze!(ready, { allowDraft, namespace: ns, cancelled: () => !active() || generation !== epoch })); statusKey = 'accepted'; await reload(); }));
             analyze.disabled = !files.length || busy || !!pending;
             append(permissions, analyze);
             append(root, permissions);
         }
-        append(root, button('newSession', () => { if (busy || pending)
+        append(root, button('newSession', () => { if (!active() || busy || pending)
             return; if (!open) {
             input = model.blank();
             input.sessions = [newSession()];
@@ -272,10 +290,10 @@ export function mountBatchUI(root: HTMLElement, options: Options) {
         else
             mutate(() => { if (input.sessions.length < model.limits.sessions)
                 input.sessions.push(newSession()); }); paint(); }), button('reload', () => run(async () => { if (pending?.action === 'draft') {
-            const result = await options.call('list', { namespace: options.namespace(), requestKey: pending.args.requestKey });
+            const result = await call('list', { namespace: options.namespace(), requestKey: pending.args.requestKey });
             if (result.record) {
                 const saved = result.record as SavedBatch;
-                const read = await options.call('list', { namespace: options.namespace(), batchId: saved.id });
+                const read = await call('list', { namespace: options.namespace(), batchId: saved.id });
                 if ((read.record as SavedBatch).digest !== saved.digest)
                     throw new Error('stale');
                 pending = null;
@@ -292,14 +310,14 @@ export function mountBatchUI(root: HTMLElement, options: Options) {
                 }
             }
             else {
-                const replay = await options.call('draft', pending.args);
+                const replay = await call('draft', pending.args);
                 edit(replay.draft as BatchDraft);
             }
         }
         else if (pending?.action === 'confirm') {
-            const result = await options.call('confirm', pending.args);
+            const result = await call('confirm', pending.args);
             const saved = result.record as SavedBatch;
-            const read = await options.call('list', { namespace: options.namespace(), batchId: saved.id });
+            const read = await call('list', { namespace: options.namespace(), batchId: saved.id });
             if ((read.record as SavedBatch).digest !== saved.digest)
                 throw new Error('stale');
             pending = null;
@@ -320,11 +338,11 @@ export function mountBatchUI(root: HTMLElement, options: Options) {
     }
     paint();
     void run(() => reload());
-    return { paint, refresh: () => run(() => reload()), receiveDraft: (next: BatchDraft) => { if (!busy && !pending && next.status === 'pending')
-            edit(next); }, setData: (next: BatchData) => { if (Array.isArray(next.batchRecords)) {
+    return { paint, refresh: () => run(() => reload()), receiveDraft: (next: BatchDraft) => { if (active() && !busy && !pending && next.status === 'pending')
+            edit(next); }, setData: (next: BatchData) => { if (active() && Array.isArray(next.batchRecords)) {
             data = next;
             paint();
-        } }, dispose: () => { epoch++; release(); root.replaceChildren(); } };
+        } }, dispose: () => { if (disposed) return; disposed = true; epoch++; release(); root.replaceChildren(); } };
 }
 export const batchUiSource = `const mountHealthBatchUI=${mountBatchUI.toString()};`;
 

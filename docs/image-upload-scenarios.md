@@ -185,6 +185,19 @@ WebP；HEIC 請轉檔並核對日期。所有分析流程（含既有 `capture_h
 
 ### Capture time and measurement time / 拍攝時間與量測時間
 
+For a **current scale photo**, known capture and measurement times are compared
+as evidence-backed instants. A five-minute window allows a scale display cycle;
+minute precision retains its minute interval. Larger differences require an
+explicit observation conflict resolution. Equivalent instants in different
+offsets (including across midnight) agree. Date-only sessions stay date-only;
+a missing capture offset does not acquire a guessed timezone. Historical
+screenshots do not use capture time as measurement time.
+
+**當下體脂計照片**若拍攝及量測時間／時差已知，會比較有證據的時刻；容許五分鐘的
+顯示循環，分鐘精度保留該分鐘區間。差異超出此範圍須逐觀察值明確說明矛盾。
+不同時差（含跨午夜）表示同一時刻時不視為矛盾。只有日期仍保留日期精度，缺拍攝
+時差不猜時區；歷史截圖的拍攝時間不當作量測時間。
+
 These are separate facts. Preserve each source's raw date/time, evidence kind and
 precision; do not turn a date-only value into midnight or invent seconds. A UTC
 instant is available only with a resolved local date/time and offset/time zone.
