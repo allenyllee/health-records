@@ -1,8 +1,10 @@
 # Image-upload scenarios / 圖片上傳使用情境
 
-All examples below are synthetic specifications, not real records, photos or
-screenshots. No screenshots or model-accuracy results are fabricated.
-以下範例皆為合成情境規格，不含真實紀錄、照片或截圖，也不虛構畫面或辨識準確率。
+The included test card and all scenarios below are synthetic. They contain no
+real health records, photos or screenshots. The card is a test input, not evidence
+of completed image analysis, saving or model accuracy.
+本文所附測試卡與以下情境皆為合成範例，不含真實健康紀錄、照片或截圖。測試卡是輸入
+範例，不代表已完成圖片辨識、儲存或驗證模型準確率。
 
 ## Current prototype and expected future integration / 現有原型與預期整合
 
@@ -28,17 +30,17 @@ ChatGPT analysis using approved plan-backed access; a shared canonical Library,
 Space, Notion or Drive dataset across both frontends. The standalone page currently
 provides manual entry and draft review, with guidance to use ChatGPT for photos.
 It has no standalone image-upload/automatic-analysis endpoint, background worker
-or model API credential. The separate skills-only workflow is not this frontend's
-storage adapter. SIWC application review, access approval and actual capability
-validation are still needed before claiming that planned flow. Sign-in alone does
-not grant inference, connector access or common Library/Space synchronization.
+or model API credential. SIWC application review, access approval and actual
+capability validation are still needed before claiming that planned flow. Sign-in
+alone does not grant inference, connector access or common Library/Space
+synchronization.
 
 **預期後續工作，尚非此原型已完成功能：** 使用正式核准的方案存取，在獨立網頁自動
 呼叫 ChatGPT 分析；以及兩個前端共用同一個 Library、Space、Notion 或 Drive 正式
 資料集。獨立頁面目前提供手動輸入、草稿核對及轉到 ChatGPT 處理照片的說明，沒有獨立
-圖片上傳／自動辨識端點、背景工作或模型 API 金鑰。另行開發的 skills-only 流程並非
-這個前端的儲存轉接器。正式 SIWC 申請審查、存取核准與實際能力驗證仍是預期流程的
-前提；登入本身不代表取得推論、連接器或共用 Library/Space 同步能力。
+圖片上傳／自動辨識端點、背景工作或模型 API 金鑰。正式 SIWC 申請審查、存取核准與
+實際能力驗證仍是預期流程的前提；登入本身不代表取得推論、連接器或共用 Library/Space
+同步能力。
 
 ## Language behavior / 語言行為
 
@@ -76,10 +78,19 @@ names, values, machine IDs, consent, timestamps and date evidence are preserved.
 不宣稱已有簡體翻譯。切換只改介面、日期／數字格式與已知合成示範文字的顯示；不改寫
 原始備註、動作名稱、健康數值、機器 ID、授權、時間戳或日期證據。
 
-## 1. Embedded scale photo / 內嵌體脂計照片
+## 1. Embedded scale image / 內嵌體脂計圖片
 
-1. In the synthetic demo space, choose a fabricated scale-image fixture showing
-   **72.4 kg, 20.0% body fat**. Select only that image and consent to send it to
+![合成體脂計測試卡：體重 72.4 公斤、體脂 21.6%、日期 2026-10-01、時區 Asia/Taipei；所有數值均為虛構。 / Synthetic scale test card: 72.4 kg, 21.6% body fat, 2026-10-01, Asia/Taipei; all values are fictional.](assets/synthetic-scale-test.png)
+
+*Previously generated synthetic scale test card, reproduced unchanged. All values
+are fictional and intended only for the demo namespace. This is not a real scale
+photo or evidence that an image-analysis workflow has succeeded.*
+
+*先前產生的合成體脂計測試卡，原圖未經修改。所有數值均為虛構，僅供合成示範空間使用；
+這不是真實體脂計照片，也不是圖片辨識流程已成功的證據。*
+
+1. In the synthetic demo space, choose the synthetic scale test card above showing
+   **72.4 kg, 21.6% body fat**. Select only that image and consent to send it to
    ChatGPT. Demo-draft creation is a separate opt-in; analysis-only sends no write
    authorization. No real photo is included in this repository.
 2. The host must declare a usable image route. Otherwise stop and explain the
@@ -97,7 +108,7 @@ names, values, machine IDs, consent, timestamps and date evidence are preserved.
    show it in the full report and the active-record trend. Unclear results remain
    uncertain. Original image/GPS are not stored on the website.
 
-1. 在合成示範空間選一張規格為 **72.4 公斤、體脂 20.0%** 的虛構測試圖，只選本次圖片
+1. 在合成示範空間選用上述 **72.4 公斤、體脂 21.6%** 的合成測試卡，只選本次圖片
    並同意送給 ChatGPT。允許建立合成草稿另行勾選；只辨識模式不授權寫入。此儲存庫
    不附真實照片。
 2. 主程式須宣告可用圖片通道，否則停止並說明限制，不能把純文字傳送當作已辨識圖片。

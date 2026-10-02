@@ -18,8 +18,8 @@ Explicit Simplified Chinese hints fall
 back to another supported language; Simplified translation is not claimed.
 
 Read the bilingual [expected user scenarios](docs/image-upload-scenarios.md) for
-synthetic scale-photo and workout-screenshot flows, review/consent/retry/correction,
-Auto/manual language behavior and the distinction between current D1 functionality
+the included synthetic scale test card, workout-screenshot scenarios,
+review/consent/retry/correction, Auto/manual language behavior and the distinction between current D1 functionality
 and planned standalone plan-backed analysis/common Library or Space storage. The
 standalone app currently offers manual entry and ChatGPT upload guidance, not an
 automatic image-analysis endpoint. This document supports the pending official
@@ -77,18 +77,6 @@ The current runtime targets Cloudflare Workers/D1 through Vite and Vinext. Produ
 
 Opening the source does not make a deployment public, establish eligibility for any external program, grant ChatGPT model tokens, or enable inference outside a supported host. Verify any external program's current official requirements separately.
 
-## Separate skills-only workflow prototype
-
-[plugin-workflow/](plugin-workflow/README.md) contains an uninstalled, provider-neutral
-skills package, portable record/binding schemas, synthetic examples and offline
-tests. It chooses among actually usable user-connected storage providers rather
-than hard-coding Drive, and requires approval of an exact data destination.
-
-This alternative is separate from the working D1 app above. It has no operator
-backend, model API key, storage account or MCP server. Provider availability,
-write/readback behavior, installation and public listing require their own live
-validation. It does not migrate, delete or replace the current deployment's data.
-
 ## Features and limits
 
 - Bodyweight/body-fat and strength-training entry types
@@ -101,6 +89,6 @@ validation. It does not migrate, delete or replace the current deployment's data
 
 ## Licensing
 
-Original code and associated documentation are licensed under the [MIT License](LICENSE), copyright (c) 2026 Allen Lee. This includes the original application code and the skills-only workflow prototype.
+Original code and associated documentation are licensed under the [MIT License](LICENSE), copyright (c) 2026 Allen Lee.
 
 Third-party source and dependencies retain their own licenses and copyright notices. See [LICENSE-STATUS.md](LICENSE-STATUS.md), [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), and the [dependency inventory](docs/dependency-inventory.csv) for their scopes and redistribution considerations.
