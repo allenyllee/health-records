@@ -1,0 +1,9 @@
+{
+  "operationId": "synthetic-correction-001",
+  "action": "correct",
+  "recordId": "synthetic-record-001",
+  "patch": {
+    "value": 44,
+    "rawValueText": "44"
+  }
+}

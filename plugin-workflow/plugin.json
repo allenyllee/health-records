@@ -1,0 +1,11 @@
+{
+  "name": "health-record-workflow",
+  "version": "0.2.0",
+  "description": "Provider-neutral workflows for user-owned health records using existing connected storage.",
+  "author": {
+    "name": "Health Record Workflow contributors"
+  },
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "license": "MIT",
+  "repository": "https://github.com/allenyllee/health-records"
+}

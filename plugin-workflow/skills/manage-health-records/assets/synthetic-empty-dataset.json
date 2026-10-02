@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "datasetId": "synthetic-dataset",
+  "revision": 0,
+  "binding": {
+    "schemaVersion": 1,
+    "bindingId": "synthetic-binding-001",
+    "synthetic": true,
+    "provider": "example-provider",
+    "accountReference": "synthetic-account",
+    "canonicalDatasetReference": "synthetic-dataset",
+    "canonicalUrl": "https://example.invalid/synthetic-dataset",
+    "nativeRecordKind": "provider-native-row",
+    "dataCategories": [
+      "synthetic demo measurements"
+    ],
+    "consent": {
+      "evidenceReference": "synthetic-example-not-real-approval",
+      "scope": "Only synthetic examples requested by the test user",
+      "approvedAt": "2026-01-01T00:00:00Z",
+      "futureUserRequestedWrites": true,
+      "originalImageStorageApproved": false
+    }
+  },
+  "records": [],
+  "operations": []
+}

@@ -1,12 +1,12 @@
 {
   "name": "health-record-workflow",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Provider-neutral workflows for user-owned health records using existing connected storage.",
   "skills": "./skills/",
   "interface": {
     "displayName": "Health Record Workflow",
     "shortDescription": "Organize user-owned records.",
-    "longDescription": "A source-only skills package for choosing connected storage, confirming the data home and verifying writes. No operator backend or model API. Live integrations and public listing remain unverified.",
+    "longDescription": "Self-contained skills and offline tools for user-owned records. Requires available writable connected storage. No operator backend or model API. Installation and public listing are not verified.",
     "category": "Productivity",
     "capabilities": [],
     "defaultPrompt": "Organize my records using my existing connected storage.",

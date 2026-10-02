@@ -1,0 +1,8 @@
+{
+  "operationId": "synthetic-delete-001",
+  "action": "status",
+  "recordId": "synthetic-record-001",
+  "status": "deleted",
+  "deletedAt": "2026-01-04T00:00:00Z",
+  "userInstruction": "Synthetic test user requested recoverable deletion of synthetic-record-001."
+}

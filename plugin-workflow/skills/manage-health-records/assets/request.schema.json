@@ -1,0 +1,334 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "operationId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "action": {
+      "enum": [
+        "append",
+        "correct",
+        "status"
+      ]
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "record.schema.json"
+      }
+    },
+    "recordId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "patch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "metric": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "rawValueText": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "measurementTime": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "rawText": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "normalized": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "precision": {
+              "enum": [
+                "unknown",
+                "date",
+                "datetime"
+              ]
+            },
+            "timezone": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "confirmed": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "rawText",
+            "normalized",
+            "precision",
+            "timezone",
+            "confirmed"
+          ]
+        },
+        "sourceReference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": []
+    },
+    "status": {
+      "enum": [
+        "active",
+        "deleted"
+      ]
+    },
+    "deletedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "userInstruction": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "operationId",
+    "action"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "const": "append"
+          }
+        }
+      },
+      "then": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "action": {
+            "enum": [
+              "append",
+              "correct",
+              "status"
+            ]
+          },
+          "records": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "record.schema.json"
+            }
+          }
+        },
+        "required": [
+          "operationId",
+          "action",
+          "records"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "const": "correct"
+          }
+        }
+      },
+      "then": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "action": {
+            "enum": [
+              "append",
+              "correct",
+              "status"
+            ]
+          },
+          "recordId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "patch": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "metric": {
+                "type": "string",
+                "minLength": 1
+              },
+              "value": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "rawValueText": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "unit": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "measurementTime": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "rawText": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "normalized": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "precision": {
+                    "enum": [
+                      "unknown",
+                      "date",
+                      "datetime"
+                    ]
+                  },
+                  "timezone": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "confirmed": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "rawText",
+                  "normalized",
+                  "precision",
+                  "timezone",
+                  "confirmed"
+                ]
+              },
+              "sourceReference": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": []
+          }
+        },
+        "required": [
+          "recordId",
+          "patch",
+          "operationId",
+          "action"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "const": "status"
+          }
+        }
+      },
+      "then": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "action": {
+            "enum": [
+              "append",
+              "correct",
+              "status"
+            ]
+          },
+          "recordId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "active",
+              "deleted"
+            ]
+          },
+          "deletedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "userInstruction": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "recordId",
+          "status",
+          "action",
+          "userInstruction",
+          "operationId",
+          "deletedAt"
+        ]
+      }
+    }
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Authorized candidate change request"
+}
