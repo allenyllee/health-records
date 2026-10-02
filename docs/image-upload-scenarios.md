@@ -25,23 +25,27 @@ Cloudflare D1 結構化紀錄。真實資料模式需既有伺服器端本人授
 看見圖片，也不等於紀錄已儲存。測試涵蓋資料與日期規則、橋接、圖表、重試及隔離儲存
 行為，不能推論所有裝置、主程式或圖片的辨識結果都正確。
 
-**Standalone source now supports optional BYOK:** batch upload → user-billed
+**Optional interim BYOK demonstration:** batch upload → user-billed
 OpenAI analysis → extracted session results → one reviewed save. Correction
 controls stay behind **Edit**, and draft internals are handled by the save flow.
 The key is entered by the user, held only in page memory and sent directly to
 OpenAI. This is an explicit-risk browser option, not a claim that browser keys
 are protected from page code or extensions. No real API key, paid inference or
-live health image was used during validation.
+live health image was used during validation. The intended product uses ChatGPT
+account and intelligence integration without requiring the user to supply a key;
+BYOK is a temporary demonstration of the flow, not a permanent prerequisite.
 
 **Expected future work, still unavailable:** approved ChatGPT-native inference on
 the standalone page and common canonical Library/Space/Notion/Drive storage.
 Sign-in does not grant inference or connector permissions. Embedded host image
 visibility, mobile behavior and model extraction accuracy require actual validation.
 
-**獨立頁面原始碼已提供可選 BYOK：** 整批上傳 → 本人付費 OpenAI 分析 → 辨識分次
+**可選的過渡 BYOK 示範：** 整批上傳 → 本人付費 OpenAI 分析 → 辨識分次
 結果 → 核對一次儲存。「修正」才展開更正欄位，草稿內部流程由儲存處理。Key 由本人
 輸入，只在頁面記憶體並直接送 OpenAI；此為明確告知風險的瀏覽器選项，不宣稱 key
-不會被頁面程式／擴充套件存取。驗證未使用真實 key、付費推論或真實健康圖片。
+不會被頁面程式／擴充套件存取。正式產品目標是以 ChatGPT 帳戶與智慧完成流程，不需
+本人提供 key；BYOK 僅是整合完成前的暫時示範，不是永久必要條件。驗證未使用真實
+key、付費推論或真實健康圖片。
 
 **尚未提供：** 獨立頁面正式核准的 ChatGPT 原生推論，以及共用 Library／Space／
 Notion／Drive 正式資料集。登入不等於推論或連接器權限。內嵌主程式看見圖片、手機

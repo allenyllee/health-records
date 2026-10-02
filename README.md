@@ -21,10 +21,12 @@ Read the bilingual [expected user scenarios](docs/image-upload-scenarios.md) for
 the included synthetic scale test card, workout-screenshot scenarios,
 review/consent/retry/correction, Auto/manual language behavior and the distinction between current D1 functionality
 and planned standalone plan-backed analysis/common Library or Space storage. The
-standalone app starts with batch upload. Its optional **BYOK OpenAI analysis**
+standalone app starts with batch upload. Its optional **interim BYOK demonstration**
 uses a user-entered key in page memory and sends sanitized images directly to
 OpenAI; API usage is billed to that user. Results appear for one review/save,
-with corrections behind **Edit**. No operator credential or key relay is included.
+with corrections behind **Edit**. The intended product uses ChatGPT account and
+intelligence integration without requiring a user API key; BYOK exercises the
+flow until that integration is available. No operator credential or key relay is included.
 ChatGPT-native standalone inference and common Library/Space storage remain
 unavailable. No real key or paid inference was used in validation. This document
 supports the pending official access application; it does not claim approval or
