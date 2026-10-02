@@ -2,7 +2,7 @@
 
 A Traditional Chinese health-record dashboard with bodyweight and strength-training records, an interactive ChatGPT MCP interface, structured date provenance, drafts, reversible deletion, and JSON export.
 
-**Source snapshot:** the running deployment remains private and separate from this source. Original-code license selection is pending. See [LICENSE-STATUS.md](LICENSE-STATUS.md) before redistribution.
+**Source snapshot:** the running deployment remains private and separate from this source. Original code and associated documentation are licensed under [MIT](LICENSE). See [LICENSE-STATUS.md](LICENSE-STATUS.md) for scope and third-party terms.
 
 ## Privacy and scope
 
@@ -80,4 +80,6 @@ validation. It does not migrate, delete or replace the current deployment's data
 
 ## Licensing
 
-Original-code license selection is pending. Dependency and vendor licenses remain separate. Do not treat this candidate as a completed MIT release; consult [LICENSE-STATUS.md](LICENSE-STATUS.md) and the scoped third-party notices and dependency inventory before publishing.
+Original code and associated documentation are licensed under the [MIT License](LICENSE), copyright (c) 2026 Allen Lee. This includes the original application code and the skills-only workflow prototype.
+
+Third-party source and dependencies retain their own licenses and copyright notices. See [LICENSE-STATUS.md](LICENSE-STATUS.md), [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), and the [dependency inventory](docs/dependency-inventory.csv) for their scopes and redistribution considerations.

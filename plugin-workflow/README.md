@@ -43,8 +43,10 @@ OpenAI's plugin/skill validators should also be run against the source tree.
 
 Workflow prose, schemas, fixtures and tests are newly authored for this project.
 The manifest/skill skeleton was generated with OpenAI's provided scaffold tools;
-no SDK code or third-party implementation is bundled. Original-code license selection is pending in the containing repository; see
-[LICENSE-STATUS.md](../LICENSE-STATUS.md). No project-level license is granted by this prototype.
+no SDK code or third-party implementation is bundled. This original workflow code
+and associated documentation are covered by the repository's [MIT License](../LICENSE),
+copyright (c) 2026 Allen Lee. See [LICENSE-STATUS.md](../LICENSE-STATUS.md) for license
+scope and third-party terms.
 
 Official design references checked 2026-10-02:
 

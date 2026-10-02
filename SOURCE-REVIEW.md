@@ -1,6 +1,6 @@
 # Source candidate review
 
-Reviewed 2026-10-02. This is an engineering preparation record, not a security certification, legal clearance, or assertion of a published repository.
+Reviewed 2026-10-02. This records the engineering preparation of the published source snapshot. It is not a security certification or legal clearance. Original code and associated documentation are licensed under [MIT](LICENSE); third-party license scopes remain separate.
 
 ## Included and excluded material
 
@@ -30,7 +30,7 @@ Existing installed dependencies were reused to avoid a network installation; a f
 
 ## Release gates
 
-1. Retain the verified, scoped MIT notices for copied OpenAI Sites/shadcn source; select an original-code license before describing the entire project as licensed open source
+1. Retain the project's [MIT license](LICENSE) and the verified, scoped notices for copied OpenAI Sites/shadcn source; preserve all applicable dependency terms
 2. Publish only the reviewed file list, excluding generated runtime/build state and the original history
 3. Verify remote file/tree hashes after upload before claiming success
 4. Before enabling real data on any new deployment, establish private audience, trusted authentication/no bypass, owner consent, and actual device/host behavior

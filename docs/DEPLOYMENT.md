@@ -36,4 +36,4 @@ The app uses platform-provided identity. It has no independent SIWC exchange imp
 
 ## Release hygiene
 
-Publish a new, reviewed source snapshot. Do not push the original private Git history. Exclude dependencies, build outputs, local runtime state, database files, screenshots, photos, exports, logs, private notes and environment values. Select and add the original-code license only after approval; preserve applicable third-party notices and confirm provenance. Keep `package.json` marked private unless a separate npm package release is intended and reviewed.
+Publish a new, reviewed source snapshot. Do not push the original private Git history. Exclude dependencies, build outputs, local runtime state, database files, screenshots, photos, exports, logs, private notes and environment values. Retain the project's [MIT license](../LICENSE), preserve applicable third-party notices, and confirm provenance for any newly added material. Keep `package.json` marked private unless a separate npm package release is intended and reviewed.

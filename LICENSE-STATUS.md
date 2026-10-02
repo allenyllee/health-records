@@ -1,14 +1,15 @@
-# License status: publication pending
+# License status: MIT
 
-No project-level license has been selected or granted by this preparation step. The maintainer must approve a license and publication destination before releasing this candidate.
+The project's original code and associated documentation are licensed under the [MIT License](LICENSE), copyright (c) 2026 Allen Lee. This includes the original application code and the separately documented skills-only workflow in `plugin-workflow/`.
 
-MIT is a possible license for original application code if the maintainer confirms rights and approves it. The retained copied source has been matched against official MIT upstream; the exact scope and notices are in `THIRD_PARTY_NOTICES.md`. It would not replace licenses or notices for dependencies, templates, vendor files, icons or other third-party material.
+The retained copied source has been matched against official MIT upstream. Its exact scope, copyright holders, and notices are documented in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The project-level license does not replace licenses or notices for dependencies, templates, vendor files, icons, or other third-party material.
 
 Existing explicit vendor notices are preserved in:
 
+- `licenses/OpenAI-Sites-MIT.txt`
 - `build/sites-vite-plugin.LICENSE`
-- The scoped shadcn UI notice described in `THIRD_PARTY_NOTICES.md`
+- `licenses/shadcn-MIT.txt`
 
-The dependency audit includes permissive, MPL-2.0, and LGPL-containing components. A source-only publication that does not distribute `node_modules`, native binaries or build bundles has a different compliance scope from distributing a bundled application. Consult the third-party report, retain required notices, and review any future binary distribution separately.
+The [dependency inventory](docs/dependency-inventory.csv) includes permissive, MPL-2.0, and LGPL-containing components. A source-only publication that does not distribute `node_modules`, native binaries, or build bundles has a different compliance scope from distributing a bundled application. Retain required notices and review any future binary distribution separately.
 
-Do not describe this candidate as an already MIT-licensed project, approved SIWC client, or published open-source repository.
+This source license does not publish health records, make the running deployment public, establish SIWC or other program eligibility, or grant ChatGPT model access.
