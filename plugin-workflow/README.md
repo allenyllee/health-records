@@ -49,8 +49,9 @@ ZIP. Do not upload this as an MCP server or register a URL: no MCP is bundled.
 Where a host only accepts public-directory submissions, a ZIP alone does not
 install it; stop and report that surface's missing private import capability.
 Plugin/skill import availability and admin policy vary by surface. Do not grant
-new connector permissions merely to install this package. Installation has not
-been performed or verified by this implementation task.
+new connector permissions merely to install this package. A private personal-skill
+save and reconciliation were verified for one tested instance on 2026-10-02;
+desktop plugin installation and public-directory availability remain unverified.
 
 Invoke `$manage-health-records` or the host's skill picker with a request such as:
 “Save this measurement to my existing health dataset” or “Summarize the records
@@ -76,15 +77,22 @@ Notion stable page IDs, partial writes and absent capabilities.
   exclusions, escaped static reports and no output overwrite.
 - ZIP tests rebuild deterministically, extract to a temporary directory, run its
   tests/toolkit and separately run an extracted standalone skill. No downloads.
-- A separate worker reported current-session synthetic Library create/read,
-  same-file correction/readback, duplicate reconciliation and stale provider
-  version rejection. This is connector evidence, not an installed skill E2E test.
-  Its initial fixture was separate from this toolkit; replay is pending unless
-  subsequently documented by that worker. No private IDs or health data are kept
-  in this repository. Account identity, canonical URL and sharing were not exposed
-  by the tested Library tools; those facts remain unknown.
-- Notion/Sheets writes, mobile, fresh-chat binding recovery, real health data,
-  installed plugin/skill activation and public directory acceptance have not been
+- The parent task independently fetched the source pinned to commit `5dad186`,
+  verified its Git blob hashes, and reran all 24 behavior tests plus the isolated
+  package test. Its synthetic Library checks passed create/read, same-file
+  correction/readback, duplicate reconciliation and stale provider version
+  rejection. The actual toolkit validated canonical readback and replayed the
+  correction with exact JSON equality and matching dataset hash. No private IDs,
+  test-storage filenames, records or account metadata are kept in this repository.
+- The parent also verified private personal-skill save and reconciliation with
+  the complete self-contained source. An independent fresh-context agent recovered
+  the same canonical Library file and version, and correctly declined a trend
+  for an unconfirmed date and unknown unit. These are scoped results for that
+  synthetic private instance, not a universal installed-plugin E2E guarantee.
+  Account identity, canonical URL and sharing were not exposed by the tested
+  Library tools; those facts remain unknown.
+- Notion/Sheets writes, mobile, real health data, other users or accounts,
+  desktop plugin installation and public directory acceptance have not been
   validated. Human workflow scenarios in `tests/behavior-cases.json` are a manual
   evaluation inventory, not claimed executable coverage.
 
