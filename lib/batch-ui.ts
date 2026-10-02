@@ -1,6 +1,7 @@
 import type { HealthBatch, BatchDraft, SavedBatch, MeasurementSession } from './batch';
 import type { batchRuntime } from './batch';
 import type { PreparedBatch } from './photo-metadata';
+import type { BrowserVisionProvider } from './vision-provider';
 type BatchData = {
     batchRecords: SavedBatch[];
     batchDrafts: BatchDraft[];
@@ -19,12 +20,13 @@ type Options = {
         namespace: string;
         cancelled: () => boolean;
     }) => Promise<unknown>;
+    byok?: BrowserVisionProvider;
     window: Window & typeof globalThis;
 };
 /** Same DOM review implementation in the website and isolated MCP iframe. No innerHTML/eval. */
 export function mountBatchUI(root: HTMLElement, options: Options) {
     const model = options.model, w = options.window, doc = root.ownerDocument, t = (key: string) => key.includes(';') ? key.split(';').map(k => model.t(k, options.locale())).join('; ') : model.t(key, options.locale());
-    let input: HealthBatch = model.blank(), files: File[] = [], prepared: PreparedBatch | null = null, previewUrls: string[] = [], epoch = 0, disposed = false, busy = false, open = false, statusKey = '', detail = '', draft: BatchDraft | null = null, base: BatchDraft | null = null, requestKey = '', consent = false, allowDraft = false, pending: {
+    let input: HealthBatch = model.blank(), files: File[] = [], prepared: PreparedBatch | null = null, previewUrls: string[] = [], epoch = 0, disposed = false, busy = false, open = false, editing = false, original: { input: HealthBatch; draft: BatchDraft | null; requestKey: string } | null = null, statusKey = '', detail = '', draft: BatchDraft | null = null, base: BatchDraft | null = null, requestKey = '', consent = false, pending: {
         action: string;
         args: Record<string, unknown>;
     } | null = null, data: BatchData = { batchRecords: [], batchDrafts: [], batchNextOffset: null };
@@ -54,14 +56,13 @@ export function mountBatchUI(root: HTMLElement, options: Options) {
     const changed = () => { draft = null; requestKey = ''; input.groupingConfirmed = false; };
     const sessionName = (s: MeasurementSession) => '#' + (input.sessions.indexOf(s) + 1) + ' · ' + (s.date || t('unknown')) + ' ' + (s.time || t('dateOnly')) + ' · ' + s.id.slice(0, 8);
     const newSession = (): MeasurementSession => ({ id: w.crypto.randomUUID(), date: null, time: null, timezone: null, precision: 'date', confirmed: false, note: '', observations: [] });
-    const edit = (d: BatchDraft) => { if (!active()) return; epoch++; release(); files = []; prepared = null; input = JSON.parse(JSON.stringify(d.batch)); draft = d; base = d; requestKey = d.requestKey; pending = null; open = true; setStatus(''); };
-    const captureSources = (p: PreparedBatch) => p.images.map(photo => ({ id: 'image-' + photo.sourceHash, kind: 'unknown' as const, capture: { status: photo.metadata.status, exifDateTime: photo.metadata.exifDateTime, exifOffset: photo.metadata.exifOffset, userDate: null, userTime: null, userTimezone: null, reviewed: false, note: '' } }));
+    const edit = (d: BatchDraft) => { if (!active()) return; epoch++; release(); files = []; prepared = null; input = JSON.parse(JSON.stringify(d.batch)); draft = d; base = d; requestKey = d.requestKey; pending = null; open = true; editing = false; original = null; setStatus(''); };
     async function reload(more = false) { const ns = options.namespace(), generation = epoch; const result = await call('list', { namespace: ns, trash: options.trash?.() === true, ...(more ? { offset: data.batchNextOffset } : {}) }) as unknown as BatchData; if (ns !== options.namespace() || generation !== epoch)
         return; data = { ...result, batchRecords: more ? [...data.batchRecords, ...result.batchRecords] : result.batchRecords }; if (pending?.action === 'draft') {
         const found = data.batchDrafts.find(d => d.requestKey === pending!.args.requestKey);
         if (found)
             edit(found);
-    } paint(); }
+    } else if (prepared && !editing) { const found = data.batchDrafts.find(d => d.requestKey === prepared!.key); if (found) edit(found); } paint(); }
     const run = async (fn: () => Promise<void>) => { if (!active() || busy)
         return; busy = true; paint(); try {
         await fn();
@@ -120,7 +121,6 @@ export function mountBatchUI(root: HTMLElement, options: Options) {
             field(card, 'captureTime', source.capture.userTime, v => { source.capture.userTime = v || null; source.capture.reviewed = false; }, 'time').step = '1';
             field(card, 'captureZone', source.capture.userTimezone, v => { source.capture.userTimezone = v || null; source.capture.reviewed = false; });
             field(card, 'captureNote', source.capture.note, v => { source.capture.note = v; source.capture.reviewed = false; });
-            check(card, 'reviewCapture', source.capture.reviewed, v => source.capture.reviewed = v);
             append(form, card);
         }
         for (const s of input.sessions) {
@@ -157,7 +157,6 @@ export function mountBatchUI(root: HTMLElement, options: Options) {
             const add = button('addMetric', () => mutate(() => addObservation(s)));
             add.disabled = input.sessions.reduce((n, s) => n + s.observations.length, 0) >= model.limits.observations;
             append(card, add);
-            check(card, 'confirmTime', s.confirmed, v => s.confirmed = v);
             if (!s.observations.length)
                 append(card, button('remove', () => mutate(() => { input.sessions = input.sessions.filter(x => x !== s); })));
             append(form, card);
@@ -166,30 +165,48 @@ export function mountBatchUI(root: HTMLElement, options: Options) {
             input.sessions.push(newSession()); }));
         add.disabled = input.sessions.length >= model.limits.sessions;
         append(form, add, button('suggest', () => mutate(() => { input = model.suggest(input); })));
-        check(form, 'grouping', input.groupingConfirmed, v => input.groupingConfirmed = v);
-        const issues = (() => { try {
-            return model.issues(model.clean(input));
+        append(parent, button('applyEdit', () => { if (busy || pending) return; editing = false; original = null; paint(); }), button('cancelEdit', () => { if (busy || pending || !original) return; input = original.input; draft = original.draft; requestKey = original.requestKey; original = null; editing = false; paint(); }));
+    }
+    // One explicit reviewed save confirms the presented sources, dates and grouping.
+    // Structural uncertainty, missing evidence and conflicts still block this candidate.
+    function reviewedInput() { const b = model.clean(input); return { ...b, groupingConfirmed: true, sources: b.sources.map(s => ({ ...s, capture: { ...s.capture, reviewed: true } })), sessions: b.sessions.map(s => ({ ...s, confirmed: true })) }; }
+    function review(parent: HTMLElement) {
+        const card = el('section'); card.className = 'batch-results';
+        append(card, el('h2', t('results')), el('p', t('reviewOnce')), el('p', [...new Set(input.sources.map(s => s.kind))].map(kind => t(kind) + ': ' + input.sources.filter(s => s.kind === kind).length).join(' · ')));
+        for (const s of input.sessions) {
+            append(card, el('h3', (s.date || t('unknown')) + ' ' + (s.time || t('dateOnly')) + ' · ' + (s.timezone || t('unknown'))));
+            const values = el('ul');
+            for (const o of s.observations) append(values, el('li', (o.selected ? '' : t('excluded') + ' · ') + (model.metrics[o.metric] ? t(o.metric) : o.label) + ': ' + (o.value === null ? t('unknown') : new Intl.NumberFormat(options.locale()).format(o.value)) + ' ' + (o.unit || t('unknown')) + (o.resolution ? ' · ' + o.resolution : '')));
+            append(card, values);
+            if (s.note && (!s.date || !s.timezone || s.observations.some(o => o.selected && (o.value === null || !o.unit)))) append(card, el('p', s.note));
         }
-        catch (e) {
-            return [(e as Error).message];
-        } })();
-        if (issues.length) {
-            const ul = el('ul');
-            for (const issue of issues)
-                append(ul, el('li', t(issue)));
-            append(form, ul);
+        const issues = (() => { try { return model.issues(reviewedInput()); } catch (e) { return [(e as Error).message]; } })();
+        if (issues.length) { append(card, el('p', t('needsClarification'))); for (const source of input.sources) if (source.kind === 'unknown' && source.capture.note) append(card, el('p', source.capture.note)); const list = el('ul'); for (const issue of issues) append(list, el('li', t(issue))); append(card, list); }
+        if (editing) editor(card);
+        else {
+            const corrections = button('edit', () => { if (busy || pending) return; original = { input: JSON.parse(JSON.stringify(input)), draft, requestKey }; editing = true; paint(); });
+            corrections.disabled = busy || !!pending;
+            append(card, corrections);
+            const save = button('save', () => run(async () => {
+                const candidate = reviewedInput();
+                if (model.issues(candidate).length) throw new Error('measurement');
+                if (!draft || JSON.stringify(draft.batch) !== JSON.stringify(candidate)) {
+                    requestKey = base ? base.requestKey.slice(0, 80) + '-' + w.crypto.randomUUID() : prepared?.key || 'review-' + w.crypto.randomUUID();
+                    pending = { action: 'draft', args: { namespace, synthetic: namespace === 'demo', userProvided: namespace === 'real', requestKey, batch: candidate, ...(base ? { replacesDraftId: base.id, expectedDigest: base.digest } : {}) } };
+                    const created = await call('draft', pending.args); const saved = created.draft as BatchDraft;
+                    if (JSON.stringify(saved.batch) !== JSON.stringify(candidate) || model.issues(saved.batch).length) throw new Error('stale');
+                    input = saved.batch; draft = saved; base = saved; pending = null;
+                }
+                pending = { action: 'confirm', args: { draftId: draft!.id, expectedDigest: draft!.digest, confirmed: true } };
+                const result = await call('confirm', pending.args); const record = result.record as SavedBatch;
+                const verified = await call('list', { namespace, batchId: record.id }); const read = verified.record as SavedBatch;
+                if (read.id !== record.id || read.digest !== draft!.digest || JSON.stringify(read.batch) !== JSON.stringify(draft!.batch)) throw new Error('stale');
+                pending = null; statusKey = result.deleted ? 'deletedReplay' : 'saved'; draft = null; base = null; open = false; editing = false; original = null; release(); prepared = null; files = []; await reload();
+            }));
+            save.className = 'primary'; save.disabled = issues.length > 0 || busy || !!pending;
+            append(card, save);
         }
-        append(form, button('draft', () => run(async () => { if (!pending) {
-            const cleaned = model.clean(input);
-            requestKey = requestKey || (base ? base.requestKey.slice(0, 80) + '-' + w.crypto.randomUUID() : prepared?.key || 'manual-' + w.crypto.randomUUID());
-            pending = { action: 'draft', args: { namespace: options.namespace(), synthetic: options.namespace() === 'demo', userProvided: options.namespace() === 'real', requestKey, batch: cleaned, ...(base ? { replacesDraftId: base.id, expectedDigest: base.digest } : {}) } };
-        } const result = await call(pending.action, pending.args); const saved = result.draft as BatchDraft; input = saved.batch; draft = saved; base = saved; pending = null; await reload(); })));
-        const save = button('save', () => run(async () => { if (!draft)
-            return; pending = { action: 'confirm', args: { draftId: draft.id, expectedDigest: draft.digest, confirmed: true } }; const result = await call('confirm', pending.args); const record = result.record as SavedBatch; const verified = await call('list', { namespace: options.namespace(), batchId: record.id }); const read = verified.record as SavedBatch; if (read.id !== record.id || read.digest !== draft.digest || JSON.stringify(read.batch) !== JSON.stringify(draft.batch))
-            throw new Error('stale'); pending = null; statusKey = result.deleted ? 'deletedReplay' : 'saved'; draft = null; base = null; open = false; release(); prepared = null; files = []; await reload(); }));
-        save.className = 'primary';
-        save.disabled = !draft || issues.length > 0 || busy || !!pending;
-        append(parent, save);
+        append(parent, card);
     }
     function report(parent: HTMLElement) {
         append(parent, el('h2', t('reports')));
@@ -237,13 +254,35 @@ export function mountBatchUI(root: HTMLElement, options: Options) {
         if (data.batchNextOffset !== null)
             append(parent, el('p', t('partialList')), button('more', () => run(() => reload(true))));
     }
+    const analyzeBatch = (retry = false) => run(async () => {
+        if (!consent) throw new Error('consent'); const generation = epoch;
+        statusKey = 'preparing'; detail = ''; paint();
+        const ready = prepared || await awaitActive(() => options.prepare(files, () => !active() || generation !== epoch));
+        prepared = ready;
+        if (generation !== epoch) throw new Error('cancelled');
+        if (options.byok) {
+            statusKey = 'analyzing'; paint();
+            const result = await awaitActive(() => options.byok!.analyze(ready, { cancelled: () => !active() || generation !== epoch, retry }));
+            input = result.batch; draft = null; base = null; requestKey = ''; open = true; editing = false; original = null; statusKey = 'extracted';
+        } else {
+            await awaitActive(() => options.analyze!(ready, { allowDraft: true, namespace, cancelled: () => !active() || generation !== epoch }));
+            statusKey = 'accepted'; await reload();
+        }
+    });
     function paint() {
         if (!active()) return;
         root.replaceChildren();
         root.className = 'batch-panel';
-        append(root, el('h2', t('title')), el('p', t('limits')), el('p', t('destination')));
-        if (!options.analyze)
-            append(root, el('p', t('manualOnly')));
+        append(root, el('h2', t('uploadTitle')), el('p', t('uploadFlow')), el('p', t('limits')));
+        if (!options.analyze && !options.byok) {
+            const capability = el('section'); capability.className = 'batch-capability';
+            append(capability, el('h3', t('analysisUnavailable')), el('p', t('chatgptPath')));
+            const link = el('a', t('openChatGPT')); link.href = 'https://chatgpt.com/'; link.target = '_blank'; link.rel = 'noopener noreferrer'; append(capability, link); append(root, capability);
+        }
+        if (options.byok) {
+            append(root, el('p', t('byokAvailable')), el('p', t('nativeUnavailable')));
+            const chat = el('a', t('openChatGPT')); chat.href = 'https://chatgpt.com/'; chat.target = '_blank'; chat.rel = 'noopener noreferrer'; append(root, chat);
+        }
         const picker = el('input');
         picker.type = 'file';
         picker.multiple = true;
@@ -251,45 +290,32 @@ export function mountBatchUI(root: HTMLElement, options: Options) {
         picker.setAttribute('aria-label', t('select'));
         picker.disabled = busy || !!pending;
         picker.onchange = () => { if (!active() || busy || pending)
-            return; epoch++; release(); files = Array.from(picker.files || []); consent = false; allowDraft = false; prepared = null; draft = null; base = null; requestKey = ''; open = true; input = model.blank(); input.sessions = [newSession()]; setStatus(''); };
+            return; epoch++; release(); files = Array.from(picker.files || []); consent = false; prepared = null; draft = null; base = null; requestKey = ''; open = false; editing = false; original = null; input = model.blank(); setStatus(''); };
         append(root, picker);
         const previews = el('div');
         files.forEach((f, i) => { const card = el('div'); append(card, el('span', '#' + (i + 1) + ' · ' + Math.ceil(f.size / 1024) + ' KB')); const img = el('img'); img.alt = '#' + (i + 1); if (!previewUrls[i])
-            previewUrls[i] = w.URL.createObjectURL(f); img.src = previewUrls[i]; img.width = 80; append(card, img); const rm = button('remove', () => { epoch++; release(); files = files.filter((_, j) => j !== i); consent = false; allowDraft = false; prepared = null; input = model.blank(); input.sessions = [newSession()]; changed(); paint(); }); rm.disabled = busy || !!pending; append(card, rm); append(previews, card); });
+            previewUrls[i] = w.URL.createObjectURL(f); img.src = previewUrls[i]; img.width = 80; append(card, img); const rm = button('remove', () => { epoch++; release(); files = files.filter((_, j) => j !== i); consent = false; prepared = null; input = model.blank(); open = false; editing = false; original = null; changed(); paint(); }); rm.disabled = busy || !!pending; append(card, rm); append(previews, card); });
         append(root, previews);
-        const prepare = button('reading', () => run(async () => { const generation = ++epoch; statusKey = 'preparing'; prepared = await awaitActive(() => options.prepare(files, () => !active() || generation !== epoch)); input.sources = captureSources(prepared); input.sessions = [newSession()]; input.groupingConfirmed = false; draft = null; base = null; requestKey = ''; open = true; statusKey = ''; detail = prepared.duplicates.length ? t('duplicate') : ''; }));
-        prepare.disabled = !files.length || busy || !!pending || !!prepared;
-        append(root, prepare);
-        if (options.analyze) {
-            const permissions = el('fieldset');
-            permissions.disabled = busy || !!pending;
-            check(permissions, 'consent', consent, v => consent = v);
-            check(permissions, 'allowDraft', allowDraft, v => allowDraft = v);
-            const analyze = button('analyze', () => run(async () => { if (!consent)
-                throw new Error('consent'); const generation = epoch, ns = options.namespace(); const wasPrepared = prepared !== null; const ready = prepared || await awaitActive(() => options.prepare(files, () => !active() || generation !== epoch)); prepared = ready; if (!wasPrepared) {
-                input.sources = captureSources(ready);
-                input.sessions = [newSession()];
-                input.groupingConfirmed = false;
-            } if (generation !== epoch)
-                throw new Error('cancelled'); await awaitActive(() => options.analyze!(ready, { allowDraft, namespace: ns, cancelled: () => !active() || generation !== epoch })); statusKey = 'accepted'; await reload(); }));
-            analyze.disabled = !files.length || busy || !!pending;
-            append(permissions, analyze);
-            append(root, permissions);
+        if ((options.analyze || options.byok) && files.length && !open) {
+            const permissions = el('fieldset'); permissions.disabled = busy || !!pending;
+            if (options.byok) {
+                append(permissions, el('p', t('analysisProvider') + ': OpenAI · gpt-4.1-mini-2025-04-14'));
+                append(permissions, el('p', t('byokDisclosure')), el('p', t('byokRisk')));
+                const policy = el('a', t('providerPolicy')); policy.href = 'https://developers.openai.com/api/docs/guides/your-data'; policy.target = '_blank'; policy.rel = 'noopener noreferrer'; append(permissions, policy);
+                const label = el('label'), keyInput = el('input'); keyInput.type = 'password'; keyInput.autocomplete = 'off'; keyInput.spellcheck = false; keyInput.maxLength = 512; keyInput.placeholder = options.byok.hasKey() ? t('keyReady') : t('apiKey');
+                keyInput.oninput = () => { if (!active() || busy || pending) return; options.byok!.setKey(keyInput.value); analyze.disabled = !consent || !options.byok!.hasKey(); };
+                append(label, el('span', t('apiKey')), keyInput); append(permissions, label);
+                if (options.byok.hasKey()) append(permissions, button('forgetKey', () => { options.byok!.clearKey(); consent = false; paint(); }));
+            }
+            check(permissions, options.byok ? 'byokConsent' : 'consent', consent, v => consent = v);
+            const analyze = button('analyze', () => analyzeBatch());
+            analyze.className = 'primary'; analyze.disabled = busy || !!pending || !consent || !!options.byok && !options.byok.hasKey();
+            append(permissions, analyze); append(root, permissions);
+            if (options.byok && ['analysisNetwork', 'analysisTimeout', 'analysisCancelled', 'analysisDuplicate', 'analysisInvalid', 'analysisIncomplete', 'analysisLimit', 'analysisQuota', 'analysisRate', 'analysisAuth'].includes(detail)) {
+                const retry = button('retryAnalysis', () => { if (w.confirm(t('retryCost'))) return analyzeBatch(true); }); retry.disabled = busy || !!pending || !consent || !options.byok.hasKey(); append(root, retry);
+            }
         }
-        append(root, button('newSession', () => { if (!active() || busy || pending)
-            return; if (!open) {
-            input = model.blank();
-            input.sessions = [newSession()];
-            draft = null;
-            base = null;
-            requestKey = '';
-            consent = false;
-            allowDraft = false;
-            open = true;
-        }
-        else
-            mutate(() => { if (input.sessions.length < model.limits.sessions)
-                input.sessions.push(newSession()); }); paint(); }), button('reload', () => run(async () => { if (pending?.action === 'draft') {
+        append(root, button('reload', () => run(async () => { if (pending?.action === 'draft') {
             const result = await call('list', { namespace: options.namespace(), requestKey: pending.args.requestKey });
             if (result.record) {
                 const saved = result.record as SavedBatch;
@@ -323,16 +349,15 @@ export function mountBatchUI(root: HTMLElement, options: Options) {
             pending = null;
             open = false;
             statusKey = result.deleted ? 'deletedReplay' : 'saved';
-        } await reload(); })), button('cancel', () => { epoch++; release(); files = []; prepared = null; consent = false; allowDraft = false; open = false; draft = null; base = null; setStatus('cancelNote'); }));
+        } await reload(); })), button('cancel', () => { epoch++; release(); files = []; prepared = null; consent = false; open = false; editing = false; original = null; draft = null; base = null; setStatus('cancelNote'); }));
         const status = el('p', t(statusKey) + (detail ? ' ' + t(detail) : ''));
         status.setAttribute('role', 'status');
         append(root, status);
-        if (open && (!files.length || prepared))
-            editor(root);
+        if (open) review(root);
         for (const d of data.batchDrafts) {
-            const b = button('edit', () => edit(d));
+            const b = button('reviewResults', () => edit(d));
             b.disabled = busy || !!pending;
-            append(root, el('p', d.id + ' · ' + d.issues.map(t).join('; ')), b);
+            if (!open || base?.id !== d.id) append(root, el('p', d.batch.sessions.length + ' ' + t('session')), b);
         }
         report(root);
     }
@@ -342,8 +367,8 @@ export function mountBatchUI(root: HTMLElement, options: Options) {
             edit(next); }, setData: (next: BatchData) => { if (active() && Array.isArray(next.batchRecords)) {
             data = next;
             paint();
-        } }, dispose: () => { if (disposed) return; disposed = true; epoch++; release(); root.replaceChildren(); } };
+        } }, dispose: () => { if (disposed) return; disposed = true; epoch++; options.byok?.dispose(); release(); root.replaceChildren(); } };
 }
 export const batchUiSource = `const mountHealthBatchUI=${mountBatchUI.toString()};`;
 
-export const batchCss=`.batch-panel{padding:16px;overflow-wrap:anywhere}.batch-panel label{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}.batch-panel input,.batch-panel select{max-width:100%;padding:7px;border:1px solid #b9c9dd;border-radius:6px;color:inherit;background:transparent}.batch-panel button{margin:5px;padding:8px 12px}.batch-editor{border:0;padding:0;min-width:0}.batch-card,.batch-observation{border:1px solid #b9c9dd;border-radius:8px;padding:12px;margin:10px 0}.batch-panel pre{white-space:pre-wrap;max-height:350px;overflow:auto;font-size:12px}.batch-panel svg{width:100%;max-height:180px}.batch-panel img{object-fit:contain;margin:8px}`;
+export const batchCss=`.batch-panel{padding:16px;overflow-wrap:anywhere}.batch-panel label{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}.batch-panel input,.batch-panel select{max-width:100%;padding:7px;border:1px solid #b9c9dd;border-radius:6px;color:inherit;background:transparent}.batch-panel button{margin:5px;padding:8px 12px}.batch-editor{border:0;padding:0;min-width:0}.batch-card,.batch-observation{border:1px solid #b9c9dd;border-radius:8px;padding:12px;margin:10px 0}.batch-results,.batch-capability{border:1px solid #b9c9dd;border-radius:8px;padding:14px;margin:12px 0}.batch-panel a{color:#2266d7;text-decoration:underline}.batch-panel p{margin:8px 0}.batch-panel pre{white-space:pre-wrap;max-height:350px;overflow:auto;font-size:12px}.batch-panel svg{width:100%;max-height:180px}.batch-panel img{object-fit:contain;margin:8px}`;

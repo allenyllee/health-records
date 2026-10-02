@@ -107,8 +107,9 @@ test('host locale notifications respect pinned origin and ignore unrelated conte
 test('standalone React presenter renders English and Traditional Chinese loading/chart/upload guidance',()=>{
   globalThis.__healthLocale='en';const en=renderToStaticMarkup(createElement(Dashboard));
   globalThis.__healthLocale='zh-Hant';const zh=renderToStaticMarkup(createElement(Dashboard));delete globalThis.__healthLocale;
-  for(const label of ['Loading private records','Body and training','Add record','Save records to see a trend','The standalone website supports manual entry'])assert.ok(en.includes(label),label);
-  for(const label of ['正在讀取私人紀錄','身體與訓練','新增紀錄','儲存紀錄後','獨立網頁提供手動紀錄'])assert.ok(zh.includes(label),label);
+  for(const label of ['Loading private records','Body and training','Save records to see a trend','Upload photos, analyze with your own key'])assert.ok(en.includes(label),label);
+  for(const label of ['正在讀取私人紀錄','身體與訓練','儲存紀錄後','上傳照片，使用自己的 key 分析'])assert.ok(zh.includes(label),label);
+  assert.equal(en.includes('Add record'),false);assert.equal(zh.includes('新增紀錄'),false);assert.equal(en.includes('capture-panel'),false);
   assert.equal(en.includes('正在讀取私人紀錄'),false);assert.equal(zh.includes('Loading private records'),false);
   assert.ok(en.includes('value="auto"'));assert.ok(en.includes('value="real"'));assert.ok(zh.includes('value="demo"'));
 });

@@ -21,10 +21,14 @@ Read the bilingual [expected user scenarios](docs/image-upload-scenarios.md) for
 the included synthetic scale test card, workout-screenshot scenarios,
 review/consent/retry/correction, Auto/manual language behavior and the distinction between current D1 functionality
 and planned standalone plan-backed analysis/common Library or Space storage. The
-standalone app provides local multiple-photo metadata inspection and manual session
-review with atomic D1 batch save, plus ChatGPT upload guidance. It has no automatic
-standalone image-analysis endpoint or approved plan-backed inference route. This document supports the pending official
-access application; it does not claim approval or alter a running deployment.
+standalone app starts with batch upload. Its optional **BYOK OpenAI analysis**
+uses a user-entered key in page memory and sends sanitized images directly to
+OpenAI; API usage is billed to that user. Results appear for one review/save,
+with corrections behind **Edit**. No operator credential or key relay is included.
+ChatGPT-native standalone inference and common Library/Space storage remain
+unavailable. No real key or paid inference was used in validation. This document
+supports the pending official access application; it does not claim approval or
+alter a running deployment.
 
 ## Privacy and scope
 
@@ -32,7 +36,7 @@ access application; it does not claim approval or alter a running deployment.
 - Synthetic demo data is isolated from real records. All included examples and test values are synthetic.
 - The app stores structured records in Cloudflare D1, not original photos, GPS, credentials, or image URLs.
 - The embedded photo flow extracts only bounded JPEG date metadata and re-encodes pixels before sending them through the active ChatGPT host's image channel. Missing or conflicting dates remain explicit; upload time is never substituted for measurement time.
-- The host may receive the selected image after the user agrees. This code does not provide a background image-analysis service or a model inference API credential.
+- The host may receive the selected image after the user agrees. Standalone BYOK analysis is foreground-only and requires explicit key-risk, image-transmission and user-billing consent; no operator key or background service is provided.
 - Deletion is reversible. Export is owner-scoped and bounded. The PWA caches only a generic offline shell, never health responses or authenticated pages.
 - Experimental synthetic event discovery is present, but subscriptions fail closed. No background upload queue, webhook sender, or automatic background analysis is enabled.
 

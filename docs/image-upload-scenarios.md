@@ -25,24 +25,27 @@ Cloudflare D1 結構化紀錄。真實資料模式需既有伺服器端本人授
 看見圖片，也不等於紀錄已儲存。測試涵蓋資料與日期規則、橋接、圖表、重試及隔離儲存
 行為，不能推論所有裝置、主程式或圖片的辨識結果都正確。
 
-**Expected future work, not delivered by this prototype:** standalone automatic
-ChatGPT analysis using approved plan-backed access; a shared canonical Library,
-Space, Notion or Drive dataset across both frontends. The standalone page currently
-provides manual entry and draft review, with guidance to use ChatGPT for photos.
-Local multi-image metadata/manual review and atomic D1 batch save are implemented;
-it has no standalone automatic-analysis endpoint or background worker
-or model API credential. SIWC application review, access approval and actual
-capability validation are still needed before claiming that planned flow. Sign-in
-alone does not grant inference, connector access or common Library/Space
-synchronization.
+**Standalone source now supports optional BYOK:** batch upload → user-billed
+OpenAI analysis → extracted session results → one reviewed save. Correction
+controls stay behind **Edit**, and draft internals are handled by the save flow.
+The key is entered by the user, held only in page memory and sent directly to
+OpenAI. This is an explicit-risk browser option, not a claim that browser keys
+are protected from page code or extensions. No real API key, paid inference or
+live health image was used during validation.
 
-**預期後續工作，尚非此原型已完成功能：** 使用正式核准的方案存取，在獨立網頁自動
-呼叫 ChatGPT 分析；以及兩個前端共用同一個 Library、Space、Notion 或 Drive 正式
-資料集。獨立頁面目前提供手動輸入、草稿核對及轉到 ChatGPT 處理照片的說明，沒有獨立
-自動辨識端點、背景工作或模型 API 金鑰；本機多圖日期／手動核對及整批 D1 儲存已實作。
-正式 SIWC 申請審查、存取核准與
-實際能力驗證仍是預期流程的前提；登入本身不代表取得推論、連接器或共用 Library/Space
-同步能力。
+**Expected future work, still unavailable:** approved ChatGPT-native inference on
+the standalone page and common canonical Library/Space/Notion/Drive storage.
+Sign-in does not grant inference or connector permissions. Embedded host image
+visibility, mobile behavior and model extraction accuracy require actual validation.
+
+**獨立頁面原始碼已提供可選 BYOK：** 整批上傳 → 本人付費 OpenAI 分析 → 辨識分次
+結果 → 核對一次儲存。「修正」才展開更正欄位，草稿內部流程由儲存處理。Key 由本人
+輸入，只在頁面記憶體並直接送 OpenAI；此為明確告知風險的瀏覽器選项，不宣稱 key
+不會被頁面程式／擴充套件存取。驗證未使用真實 key、付費推論或真實健康圖片。
+
+**尚未提供：** 獨立頁面正式核准的 ChatGPT 原生推論，以及共用 Library／Space／
+Notion／Drive 正式資料集。登入不等於推論或連接器權限。內嵌主程式看見圖片、手機
+行為與模型辨識準確率仍須實際驗證。
 
 ## Language behavior / 語言行為
 
@@ -108,80 +111,46 @@ WebP；HEIC 請轉檔並核對日期。所有分析流程（含既有 `capture_h
 
 ### Batch → multiple sessions → one reviewed save / 整批 → 多次量測 → 一次核對入帳
 
-1. **Select, inspect and consent.** Preview/remove selected inputs. Read available
-   capture evidence locally; unsupported/missing/stripped metadata stays explicit.
-   The embedded route requires actual declared image transport, separate image
-   consent and optional draft permission. It sends every sanitized image together
-   via the existing message/context route. Host acceptance is not proof that the
-   model saw every image; missing/partial/unknown outcomes require chat inspection
-   and readback before retry, with no text-only or paid-API fallback.
-2. **Analyze each image without mixing sessions.** A scale cycling weight, body fat
-   and muscle readings may form one session. A batch may instead span different
-   days or separate sessions on the same day. One screenshot may contain multiple
-   historical dates; its source ID can support many sessions through distinct
-   fixed observation indices. Screenshot creation/EXIF/upload time never replaces
-   visible historical measurement dates. Metadata only assists grouping.
-3. **Keep exact labels, values and units.** The unchanged original card shows
-   **72.4 kg, body fat 21.6%, observation date 2026-10-01, Asia/Taipei**. It shows no
-   muscle reading or capture time. A hypothetical extra **skeletal muscle mass
-   30.2 kg** is a separate synthetic specification. Skeletal muscle mass, total
-   muscle mass and their percentages are distinct typed metrics; explicit custom
-   metric IDs/labels/units support other readings. No mass-to-percent inference.
-4. **Review grouping and conflicts once.** Suggested groups use visible dates and
-   require approval; same-day sessions need explicit split/merge correction. Add
-   sessions, move observations to merge/split, and remove emptied sessions.
-   Preserve per-image capture evidence and per-observation displayed date/time/zone.
-   Review every source, explain unavailable/conflicting capture evidence, confirm
-   each session's measurement date/time/precision/zone, then confirm the grouping.
-   Exact image duplicates are processed once. Repeated metric/value/unit readings
-   consolidate with all sources; conflicting values or units block confirmation.
-   Select the intended observations and explain exclusions; never average or pick
-   the latest upload. Recompressed/near-duplicate images require review.
-5. **Create/update one pending batch draft.** Structured extraction creates no
-   confirmed records. Edits require a new immutable draft and the prior digest;
-   stale corrections are rejected. Unknown dates, zones, values or unresolved
-   conflicts keep the entire batch pending, including otherwise clear sessions.
-   A date-only measurement can be explicitly accepted with unknown time; it is
-   never stored as midnight. Ambiguous/nonexistent IANA-zone local times require
-   clarification or an explicit correct UTC offset before timed confirmation.
-6. **Confirm the reviewed batch atomically, then read back.** One explicit action
-   confirms **all reviewed sessions/metrics/provenance** together, or none. They
-   remain separate sessions in one bounded batch payload. Expected digest and
-   immutable draft state guard stale saves; the same request key with different
-   content is rejected. Canonical exact-ID readback verifies the saved digest and
-   complete batch before success. Reports expose session values and evidence;
-   trends group exact metric/unit (and custom label), retain date-only precision,
-   and exclude pending/deleted batches. Trends display observation order, not an
-   invented UTC timeline. Batch deletion/restoration affects the whole batch only
-   after explicit confirmation; retry never restores deleted data.
+1. **Upload a batch, then consent to analysis.** Select/preview/remove photos or
+   screenshots. Capture dates are read locally and hidden metadata is removed
+   automatically; there is no separate metadata-reading or manual-entry step.
+   Standalone BYOK discloses OpenAI, own-account API charges and browser key risk
+   before Analyze. The embedded route needs an actually declared image channel
+   and consent to analysis/pending results; it never falls back to a paid API.
+2. **The agent extracts and groups.** Current scale cycles can share a session;
+   different days or independently timed measurements stay separate. Historical
+   screenshots can provide several sessions with stable source/observation IDs.
+   Keep exact labels/units: weight, body-fat percentage, skeletal/total muscle
+   mass and muscle percentage are separate. Never derive percentages from mass,
+   or infer an unknown date, time, timezone or unit. Unreadable fields remain null.
+3. **Review results once; Edit only when needed.** Read-only result cards show
+   extracted values, dates, units and session grouping. Only unclear or conflicting
+   evidence blocks saving. **Edit** reveals source/date/value corrections and
+   split/merge controls; **Done editing** returns to results and **Cancel edits**
+   restores the previous values. New-session/metric/grouping controls are not
+   presented before results. A date-only result stays date-only, without midnight.
+4. **Confirm and save.** One explicit Save confirms the presented sources, dates
+   and grouping. The UI handles immutable draft creation/replacement with the
+   expected previous digest, then confirms the whole batch atomically. It reads
+   back the exact ID/digest/full batch before showing success. Unknown values,
+   invalid dates/units, missing timezone evidence, source conflicts and empty
+   sessions still block saving. Model output cannot exclude readings or invent user conflict resolutions; these remain user edits. No automatic confirmed save follows analysis.
 
-1. **選圖、檢查及同意：** 預覽／移除本次圖片，在本機逐圖讀取拍攝證據；不支援、缺漏
-   或已移除中繼資料會明示。內嵌分析須實際宣告圖片通道，另行同意圖片傳送及可選的
-   草稿建立權限，透過既有訊息／內容通道一起送出全部清理後圖片。接受不代表模型看見
-   每張；缺少、部分送達或結果不明須先查看對話與讀回，再重試，不改送純文字或付費 API。
-2. **逐圖分析但不混次：** 體脂計輪流顯示體重、體脂及肌肉讀數可屬同次；整批亦可含
-   不同日期或同一天的不同次數。一張截圖可有多個歷史日期，以相同來源編號與不同固定
-   觀察序號對應多次量測。截圖建立／EXIF／上傳時間不代替畫面歷史量測時間，日期僅輔助分組。
-3. **保留指標、數值及單位：** 原卡未修改，顯示 **72.4 公斤、體脂 21.6%、2026-10-01、
-   Asia/Taipei**，沒有肌肉讀數或拍攝時間。假設額外的**骨骼肌重量 30.2 公斤**是另一
-   合成規格；骨骼肌、總肌肉重量及其百分比分為不同指標，其他讀數可用明確自訂編號／
-   名稱／單位，不以重量推算百分比。
-4. **同一畫面核對分組與矛盾：** 可依畫面日期提議分組，但仍須核准；同日不同次數須
-   明確拆分／合併。新增量測、搬移觀察值合併或拆分，再移除空量測。逐圖拍攝證據及逐
-   觀察值畫面日期／時間／時區都保留。每來源須核對並說明缺漏／矛盾，再確認各次量測
-   日期／時間／精度／時區與整體分組。完全相同圖片只處理一次，相同指標／值／單位
-   整合並保留全部來源；不同值／單位阻擋入帳，須選擇及說明排除，不平均、不取最後上傳。
-   重新壓縮或近似圖片仍需核對。
-5. **建立／更新一個待確認批次：** 擷取只建草稿，不自動入帳。修改須帶舊摘要建立新
-   不可變草稿，過期更正會拒絕。日期、時區、數值或衝突未釐清時整批維持待確認，即使
-   其他量測已明確。本人可明確接受只有日期、時間未知，不補成午夜。IANA 時區的夏令
-   時間歧義／不存在當地時間須釐清，或改填確切正確 UTC 時差，才確認有時間的紀錄。
-6. **一次確認整批原子入帳並讀回：** 一個明確動作讓**全部已核對量測／數值／證據**一起
-   成功或全部不入帳，批次內仍分開各次量測。預期摘要與不可變草稿狀態防止過期儲存；
-   相同編號不同內容拒絕。讀回正式確切編號、摘要及完整批次後才表示成功。報表呈現
-   各次數值及證據；趨勢依相同指標／單位（自訂指標另依名稱）分組，保留只有日期的精度，
-   排除草稿／已刪批次，顯示觀察順序而非虛構 UTC 時間軸。整批刪除／還原須明確確認，
-   重試不自行還原。
+1. **整批上傳後同意分析：** 選取、預覽／移除照片或截圖，自動在本機讀取拍攝日期並
+   去除隱藏中繼資料，不需要另外按日期解析或從空白表單輸入。獨立頁 BYOK 會先說明
+   OpenAI、本人 API 費用與瀏覽器 key 風險；內嵌流程需實際圖片通道及分析／待核對
+   結果同意，不自動改用付費 API。
+2. **Agent 擷取並分類：** 同一次體脂計顯示循環可合併；不同日期或同日不同量測須
+   分開。一張歷史截圖可有多次量測，保留固定來源及觀察 ID。體重、體脂率、骨骼／
+   總肌肉重量與肌肉率分開，不由重量推算百分比，也不猜日期、時間、時區或單位。
+   無法辨讀的欄位保留 null。
+3. **核對一次，必要時才修正：** 結果卡顯示數值、日期、單位及分次分類；只有不明或
+   矛盾資料阻擋儲存。「修正」才開啟來源／日期／數值更正及合併拆分；「完成修正」
+   回結果，「取消修正」恢復原值。結果前不顯示新增量測／指標／分組控制。只有日期
+   就保留日期，不補成午夜。
+4. **確認並儲存：** 一次儲存確認畫面來源、日期及分組；UI 內部帶舊摘要建立／更正
+   不可變草稿，再原子確認整批，讀回確切 ID／摘要／完整內容才顯示成功。未知數值、
+   無效日期／單位、缺時區證據、來源矛盾或空量測仍阻擋。模型不能排除讀數或虛構本人矛盾釐清，這些僅由本人修正；分析後不自動正式入帳。
 
 ### Capture time and measurement time / 拍攝時間與量測時間
 
@@ -245,32 +214,67 @@ it does not infer training recommendations.
 
 ## 3. Standalone Web App/PWA upload intent / 獨立網頁／PWA 上傳意圖
 
-**Implemented standalone flow:** select a bounded batch, preview/remove images,
-choose **Read date evidence locally**, inspect each capture status and enter the
-visible metric/date/time/unit observations manually. Mark photos versus historical
-screenshots, group/split/merge into sessions, resolve conflicts and review the whole
-batch. Create/update a pending draft, then explicitly confirm its atomic D1 save.
-Reloaded reports contain every session and its provenance. Legacy manual single
-records remain compatible. Original images remain in local transient memory;
-health data is never persisted to browser storage or PWA caches.
+**Implemented flow:** the batch picker is above reports. After selection, enter
+an own OpenAI API key and acknowledge provider charges, photo transmission and
+browser key exposure, then choose **Analyze whole batch**. The browser sanitizes
+pixels, preserves local capture date evidence, and calls the fixed official
+Responses endpoint with `gpt-4.1-mini-2025-04-14`. Structured extraction is validated
+locally and shown as read-only session results. There is no manual Add Record
+button competing with upload, and no source/session/metric editor before results.
+Only **Edit** reveals corrections. One explicit Save handles the guarded draft and
+atomic owner-D1 confirmation, then verifies canonical readback. Existing records,
+reports, export and recoverable deletion remain compatible.
 
-**Still unavailable:** automatic standalone ChatGPT-plan image analysis and common
-Library/Space/Notion/Drive storage. No model API key, approved plan token or inferred
-connector grant is introduced. Embedded transport/model behavior needs real host
-validation; user-owned storage needs an actually available writable capability,
-exact destination approval and readback verification. Sign-in alone grants none
-of these. The existing owner D1 authorization remains the storage gate.
+**Browser and provider limits:** API key is memory-only, never URL, server relay,
+cookie, local/session storage, DB or application log. **Forget key**, page hide and
+panel disposal clear it; cancellation aborts local waiting. Page code/browser
+extensions can still access it. This is not the recommended server-secret
+architecture: it is the user's explicitly chosen own-key option on a trusted page.
+Requests use `credentials:omit`, `cache:no-store`, redirects disabled, `store:false`
+and `prompt_cache_retention:in_memory`; they contain no tools, conversation state,
+file uploads or remote image URLs. `store:false` concerns response state, not zero
+retention; standard provider abuse-monitoring retention can be up to 30 days.
 
-**已實作獨立流程：** 選取有上限批次，預覽／移除，按「在本機讀取日期證據」，逐圖查看
-拍攝狀態並手動填入可見數值／日期／時間／單位。標示照片或歷史截圖，合併／拆分為多次
-量測，釐清衝突並核對整批；建立／更新草稿後明確確認整批 D1 原子儲存，重讀報表呈現
-所有量測及證據。舊單筆手動紀錄仍相容；原圖僅在本機暫時記憶體，不將健康資料存入
-瀏覽器儲存或 PWA 快取。
+A request is bounded to **8 images**, **1536 px longest side**, **12 MB sanitized
+PNG bytes**, **17 MB serialized request**, **6,000 output tokens**, **128 KB response**
+and **90 seconds local wait**. Original preparation limits still apply. This is a
+bounded request, not a guaranteed price cap. Incomplete, refused, malformed or
+invalid output is rejected as a whole; unknown fields remain review questions.
+No key/model request is made on selection, key entry, locale switching or reload.
+No automatic retry occurs. Same-batch repeats are blocked unless the user selects
+an explicit retry and accepts a possible additional charge. Abort/timeout does
+not guarantee provider processing or billing stops; no server cancel is promised.
+A CORS/CSP/network failure reports the blocked/uncertain outcome and never creates
+a backend relay or falls back to another provider.
 
-**仍不可用：** 獨立網頁自動 ChatGPT 方案圖片分析及共用 Library／Space／Notion／
-Drive。未新增模型 API 金鑰、核准方案權杖或猜測的連接器權限；內嵌通道／模型行為須
-實際主程式驗證，自有儲存須確認真正可寫能力、確切目的地與讀回。登入不代表取得這些
-能力；目前儲存仍須既有本人 D1 授權。PWA 讀寫需連線，離線只顯示一般提示。
+**Still unavailable:** ChatGPT-native standalone analysis and shared
+Library/Space/Notion/Drive storage. The ChatGPT route uses the connected app and
+actual host capabilities; selecting photos here does not secretly send them to
+ChatGPT. A future authorized native adapter must return the same normalized
+`AnalysisResult { version:1, batch }` for the common review/save flow. No persistent
+grant, operator API credential, native-token assumption or storage migration is
+introduced. The existing owner D1 gate remains authoritative.
+
+**已實作：** 批次選圖位於報表之前；選取後輸入本人 OpenAI key，了解費用、圖片
+傳送及瀏覽器 key 風險，再按「分析整批」。瀏覽器清理像素、保留本機日期證據，直接
+呼叫官方 Responses 端點及固定模型。嚴格驗證後顯示唯讀分次結果；沒有競爭的「新增
+紀錄」，也不先顯示來源／量測／指標表單。「修正」才展開更正；一次儲存內部完成
+草稿摘要防護、整批本人 D1 確認與正式讀回。既有紀錄、報表、匯出及可還原刪除保持相容。
+
+**Key／服務商限制：** Key 只在頁面記憶體，不進 URL、轉送伺服器、cookie、本機／
+session 儲存、DB 或應用日誌；清除 key、離開頁面、面板結束會清除。頁面程式與擴充
+套件仍可存取，這是本人明確選擇的可信任頁面 BYOK 方式，不宣稱是建議的伺服器秘密
+架構。store:false 只關閉回應狀態保存，不是零保留；濫用監控資料可能最多保留 30 天。
+每次上限 **8 張、最長邊 1536px、清理 PNG 12MB、序列請求 17MB、輸出 6,000 tokens、
+回應 128KB、本機等待 90 秒**，不是保證費用上限。拒絕／不完整／格式錯誤結果整批
+拒絕；未知欄位待核對。選圖、輸入 key、切語言、重讀不送模型請求。不自動重試；
+重送同批須明確接受可能再次計費。取消／逾時只停止本機等待，不保證服务商停止處理
+或計費。CORS／CSP／網路失敗會明示，不建立轉送伺服器或換服務商。
+
+**尚未提供：** 此頁 ChatGPT 原生分析及共用 Library／Space／Notion／Drive。
+ChatGPT 路徑仍需已連接應用及真實主程式能力，選圖不會偷偷轉送到 ChatGPT。未來
+核准的原生 adapter 使用相同 AnalysisResult，沿用核對／儲存；未新增持久權限、業者
+付費 key、方案權杖假設或儲存遷移，既有本人 D1 授權仍有效。
 
 ## 4. Retry, correction, trends, read-only and cancel / 重試、更正、趨勢、只讀與取消
 
@@ -333,8 +337,9 @@ The following describes existing single-record behavior / 以下為現有單筆�
   review flags are validated before confirmation; no timezone default is evidence.
 - [Shared review/report UI](../lib/batch-ui.ts) runs in the [standalone panel](../app/batch-panel.tsx)
   and [v5 widget](../lib/widget.ts). It provides multiple selection, source review,
-  group suggestions/moves, immutable draft updates, one confirmed batch save,
+  read-only results, Edit-only group corrections, internal guarded draft updates, one confirmed save,
   canonical readback, metric/unit trends and explicit whole-batch trash/restore.
+- [Browser BYOK provider](../lib/vision-provider.ts) uses official Responses image input and strict Structured Outputs with a shared normalized result contract. Mock tests cover schema/IDs/units, refusal/incomplete output, request/response bounds, credential isolation, quota/rate errors, timeout/cancellation and explicit retries. No real key or paid inference has been used.
 - [Local photo preparation](../lib/photo-metadata.ts) reads only whitelisted JPEG
   time/offset before redrawing pixels. [Bridge](../lib/widget-bridge.ts) sends all
   sanitized images through declared image-capable routes, with draft-only prompts.
@@ -357,7 +362,7 @@ The following describes existing single-record behavior / 以下為現有單筆�
 - [共用模型](../lib/batch.ts)驗證逐圖拍攝證據與跨多次量測的一對多觀察值、指標／單位、
   衝突／排除、時間精度／時區、夏令時間歧義及核對旗標；不把預設時區當證據。
 - [共用核對報表](../lib/batch-ui.ts)供獨立頁面及 v5 內嵌介面使用，多選、逐來源核對、
-  分組提議／搬移、不可變草稿更正、整批確認、正式讀回、同指標單位趨勢及整批回收／還原。
+  唯讀結果、「修正」才開分組／搬移、內部不可變草稿更正、整批確認、正式讀回及回收／還原。
 - 日期白名單解析後在本機重繪像素，再由宣告圖片通道傳送整批，僅允許草稿。實際主程式
   張數限制、手機行為及模型準確率未經合成測試證明；傳送接受僅為確認收到請求。
 - 儲存有本人／空間隔離、確切編號與摘要防護，以單一批次內容實現全部量測原子確認。
@@ -376,3 +381,25 @@ Checked 2026-10-02 / 查核日期：2026-10-02。
 [partial host-context updates](https://apps.extensions.modelcontextprotocol.io/api/interfaces/app.McpUiHostContextChangedNotification.html).
 These references establish optional hints, not universal host availability.
 這些依據僅證明可選提示介面，不代表所有主程式皆提供。
+
+## BYOK official references and validation / BYOK 官方依據與驗證
+
+Checked 2026-10-02. Official docs confirm [pinned mini image/Responses/Structured
+Outputs support](https://developers.openai.com/api/docs/models/gpt-4.1-mini),
+[image inputs](https://developers.openai.com/api/docs/guides/images-vision),
+[strict structured output](https://developers.openai.com/api/docs/guides/structured-outputs),
+[browser SDK opt-in and key exposure risk](https://developers.openai.com/api/reference/typescript),
+[data retention](https://developers.openai.com/api/docs/guides/your-data), and
+[prompt-cache retention](https://developers.openai.com/api/docs/guides/prompt-caching).
+A credential-free OPTIONS preflight to the fixed Responses endpoint allowed POST,
+authorization/content-type and wildcard origin. This is limited feasibility
+verification; it does not guarantee every deployed origin, browser, account or
+future provider policy. Only mocked fetch/synthetic tests were used for inference.
+Real billed extraction, actual image accuracy, mobile and private-origin CSP/CORS
+remain unvalidated. No installed plugin or public listing is claimed.
+
+2026-10-02 查核官方模型／圖片／嚴格輸出／瀏覽器 opt-in 風險／資料及快取保留文件。
+無 key 的 OPTIONS 預檢允許 POST、authorization/content-type 及 wildcard origin；
+只證明當次可行性，不保證各網站、瀏覽器、帳戶或未來政策。推論僅用 mocked fetch
+與合成測試；實際付費辨識、圖片準確率、手機及私人網站 CSP／CORS 尚未驗證。
+不宣稱已替使用者安裝插件或公開上架。
