@@ -1,0 +1,93 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "bindingId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "synthetic": {
+      "type": "boolean"
+    },
+    "provider": {
+      "type": "string",
+      "minLength": 1
+    },
+    "accountReference": {
+      "type": "string",
+      "minLength": 1
+    },
+    "canonicalDatasetReference": {
+      "type": "string",
+      "minLength": 1
+    },
+    "canonicalUrl": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uri"
+    },
+    "nativeRecordKind": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dataCategories": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "consent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "evidenceReference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "approvedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "futureUserRequestedWrites": {
+          "type": "boolean"
+        },
+        "originalImageStorageApproved": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "evidenceReference",
+        "scope",
+        "approvedAt",
+        "futureUserRequestedWrites",
+        "originalImageStorageApproved"
+      ]
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "bindingId",
+    "synthetic",
+    "provider",
+    "accountReference",
+    "canonicalDatasetReference",
+    "canonicalUrl",
+    "nativeRecordKind",
+    "dataCategories",
+    "consent"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "User-approved data-home binding"
+}

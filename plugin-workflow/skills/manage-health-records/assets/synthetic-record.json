@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "recordId": "synthetic-record-001",
+  "operationId": "synthetic-import-001",
+  "synthetic": true,
+  "metric": "demo_metric",
+  "value": 42,
+  "rawValueText": "42",
+  "unit": null,
+  "measurementTime": {
+    "rawText": "3/4",
+    "normalized": null,
+    "precision": "unknown",
+    "timezone": null,
+    "confirmed": false
+  },
+  "status": "active",
+  "deletedAt": null,
+  "sourceReference": null,
+  "providerRecordReference": null
+}

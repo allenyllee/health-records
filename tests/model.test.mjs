@@ -1,0 +1,11 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {cleanInput,issues,fingerprint,requireOwner,kg,sampleInputs} from '../.sites-runtime/health-model.mjs';
+test('all synthetic fixtures are valid',()=>{assert.equal(sampleInputs.length,18);for(const x of sampleInputs)assert.deepEqual(issues(cleanInput(x)),[]);});
+test('missing date and unit require review',()=>{const x=cleanInput({kind:'body',weight:72});assert.equal(x.date,null);assert.equal(x.unit,null);assert.equal(issues(x).length,2);});
+test('bad dates, zero weight, and uncertainty blocked',()=>{const x=cleanInput({...sampleInputs[0],date:'2026-02-30',weight:0,uncertain:['weight']});assert.equal(issues(x).length,3);});
+test('invalid number and timezone rejected',()=>{assert.throws(()=>cleanInput({kind:'body',weight:'70'}));assert.throws(()=>cleanInput({kind:'body',timezone:'Bad/Zone'}));});
+test('auth missing and partial identity rejected',()=>{assert.throws(()=>requireOwner(new Headers()),{status:401});assert.throws(()=>requireOwner(new Headers({'oai-authenticated-user-id':'a'})),{status:401});assert.equal(requireOwner(new Headers({'oai-authenticated-user-id':'a','oai-authenticated-user-email':'demo@example.test'})),'a');});
+test('fingerprint deterministic, differs on meaningful changes',async()=>{const x=sampleInputs[0];assert.equal(await fingerprint(x),await fingerprint({...x}));assert.notEqual(await fingerprint(x),await fingerprint({...x,date:'2026-10-01'}));});
+test('unit conversion exact',()=>assert.ok(Math.abs(kg(10,'lb')-4.5359237)<1e-10));
+test('training requires whole positive reps and sets',()=>{const x=cleanInput({...sampleInputs[12],reps:1.5,sets:0,load:-1});assert.equal(issues(x).length,3);});
+test('irrelevant kind fields cleared',()=>{const x=cleanInput({...sampleInputs[0],exercise:'ignored',load:-99,reps:-3,sets:-1});assert.equal(x.exercise,null);assert.equal(x.load,null);assert.equal(x.reps,null);assert.equal(x.sets,null);});
+test('date suffix not silently truncated',()=>{assert.ok(issues(cleanInput({...sampleInputs[0],date:'2026-10-01 extra'})).length>0);});

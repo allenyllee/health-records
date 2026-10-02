@@ -1,0 +1,228 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "operationId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "synthetic": {
+      "type": "boolean"
+    },
+    "metric": {
+      "type": "string",
+      "minLength": 1
+    },
+    "value": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "rawValueText": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "unit": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "measurementTime": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "rawText": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "normalized": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "precision": {
+          "enum": [
+            "unknown",
+            "date",
+            "datetime"
+          ]
+        },
+        "timezone": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "confirmed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "rawText",
+        "normalized",
+        "precision",
+        "timezone",
+        "confirmed"
+      ]
+    },
+    "status": {
+      "enum": [
+        "active",
+        "deleted"
+      ]
+    },
+    "deletedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "sourceReference": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "providerRecordReference": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "recordId",
+    "operationId",
+    "synthetic",
+    "metric",
+    "value",
+    "rawValueText",
+    "unit",
+    "measurementTime",
+    "status",
+    "deletedAt",
+    "sourceReference",
+    "providerRecordReference"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Portable health observation",
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "deleted"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "deletedAt": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "deletedAt": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "measurementTime": {
+            "properties": {
+              "precision": {
+                "const": "unknown"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "measurementTime": {
+            "properties": {
+              "normalized": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "measurementTime": {
+            "properties": {
+              "precision": {
+                "const": "date"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "measurementTime": {
+            "properties": {
+              "normalized": {
+                "type": "string",
+                "format": "date"
+              },
+              "timezone": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "measurementTime": {
+            "properties": {
+              "precision": {
+                "const": "datetime"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "measurementTime": {
+            "properties": {
+              "normalized": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

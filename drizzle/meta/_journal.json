@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1790863490961,
+      "tag": "0000_slim_zemo",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1790872806400,
+      "tag": "0001_eminent_lightspeed",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1790900680606,
+      "tag": "0002_perfect_junta",
+      "breakpoints": true
+    }
+  ]
+}

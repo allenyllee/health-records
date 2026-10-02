@@ -1,0 +1,4 @@
+interface:
+  display_name: "Manage health records"
+  short_description: "Keep user-owned records in connected storage"
+  default_prompt: "Use $manage-health-records to organize my records in my connected storage."

@@ -1,2 +1,83 @@
-# health-records
-Owner-scoped health records dashboard, ChatGPT MCP interface, and provider-neutral storage workflow prototype.
+# Private Health Records · 健康紀錄
+
+A Traditional Chinese health-record dashboard with bodyweight and strength-training records, an interactive ChatGPT MCP interface, structured date provenance, drafts, reversible deletion, and JSON export.
+
+**Source snapshot:** the running deployment remains private and separate from this source. Original-code license selection is pending. See [LICENSE-STATUS.md](LICENSE-STATUS.md) before redistribution.
+
+## Privacy and scope
+
+- Real records require both an authenticated owner identity and explicit server-side consent. They are disabled by default.
+- Synthetic demo data is isolated from real records. All included examples and test values are synthetic.
+- The app stores structured records in Cloudflare D1, not original photos, GPS, credentials, or image URLs.
+- The embedded photo flow extracts only bounded JPEG date metadata and re-encodes pixels before sending them through the active ChatGPT host's image channel. Missing or conflicting dates remain explicit; upload time is never substituted for measurement time.
+- The host may receive the selected image after the user agrees. This code does not provide a background image-analysis service or a model inference API credential.
+- Deletion is reversible. Export is owner-scoped and bounded. The PWA caches only a generic offline shell, never health responses or authenticated pages.
+- Experimental synthetic event discovery is present, but subscriptions fail closed. No background upload queue, webhook sender, or automatic background analysis is enabled.
+
+This is a personal-record prototype, not a medical device, diagnosis service, or promise of regulatory compliance.
+
+## Local development
+
+Requirements: Node.js 22.13 or newer and npm. A fresh dependency install requires access to the public package registry. No account, cloud credential, or real health data is needed for local synthetic testing.
+
+```sh
+npm ci
+cp .dev.vars.example .dev.vars
+npm run db:migrate:local
+npm run dev
+```
+
+Open the loopback address printed by the dev server, normally `http://127.0.0.1:5173`. The local sign-in flow creates a deliberately synthetic identity and is restricted to loopback. Real-record mode stays disabled. Do not expose this mock-login server to the internet.
+
+`HEALTH_PUBLIC_ORIGIN` controls the embedded widget's full-report link. It accepts an HTTPS origin, or HTTP on loopback for local development. Blank or invalid input disables the link. Never point it to someone else's private deployment.
+
+The `.openai/hosting.json` file contains only generic binding declarations. It deliberately contains no account or project identifier. The placeholder database ID in `wrangler.local.jsonc` is only for isolated local development.
+
+## Checks
+
+```sh
+npm test
+npm run test:integration
+npm run test:races
+npm run test:events
+npm run typecheck
+npm run lint
+npm run build
+npm run audit:source
+```
+
+Tests create only synthetic fixtures in isolated local Miniflare databases. Do not run tests against an existing personal-health database. See [SOURCE-REVIEW.md](SOURCE-REVIEW.md) for the candidate's verification results and remaining limitations.
+
+## Architecture and deployment
+
+Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md), and [SECURITY.md](SECURITY.md) before hosting real records.
+
+The current runtime targets Cloudflare Workers/D1 through Vite and Vinext. Production identity is supplied by a trusted Sites authentication gateway. This source package does not include an independently deployable OAuth/SIWC server, credentials, or a general-purpose secure authentication gateway.
+
+Opening the source does not make a deployment public, establish eligibility for any external program, grant ChatGPT model tokens, or enable inference outside a supported host. Verify any external program's current official requirements separately.
+
+## Separate skills-only workflow prototype
+
+[plugin-workflow/](plugin-workflow/README.md) contains an uninstalled, provider-neutral
+skills package, portable record/binding schemas, synthetic examples and offline
+tests. It chooses among actually usable user-connected storage providers rather
+than hard-coding Drive, and requires approval of an exact data destination.
+
+This alternative is separate from the working D1 app above. It has no operator
+backend, model API key, storage account or MCP server. Provider availability,
+write/readback behavior, installation and public listing require their own live
+validation. It does not migrate, delete or replace the current deployment's data.
+
+## Features and limits
+
+- Bodyweight/body-fat and strength-training entry types
+- Draft correction and explicit confirmation, source-key idempotency, and owner-scoped audit events
+- Separate real/demo namespaces, trash and restore, structured JSON export
+- A default list page holds 500 records; the UI can load further pages and labels partial chart data
+- Export is bounded to 10,000 records/drafts and errors explicitly above the bound; pending-draft UI currently shows the latest 100
+- JPEG date metadata is supported; unsupported/corrupt/missing EXIF remains explicit, and HEIC must be converted and its date checked
+- The real-photo mobile flow and model accuracy require separate device/host validation; automated tests do not prove either
+
+## Licensing
+
+Original-code license selection is pending. Dependency and vendor licenses remain separate. Do not treat this candidate as a completed MIT release; consult [LICENSE-STATUS.md](LICENSE-STATUS.md) and the scoped third-party notices and dependency inventory before publishing.

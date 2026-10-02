@@ -1,0 +1,9 @@
+# Copy to .dev.vars for LOCAL development only. Do not commit .dev.vars.
+# The public origin is not a secret; blank disables the full-report widget link.
+HEALTH_PUBLIC_ORIGIN=http://localhost:5173
+
+# Real records are disabled by default. Do not enable them merely to run tests.
+# For an independently authenticated, owner-private deployment, set BOTH values
+# through that deployment's private runtime configuration after informed consent.
+# HEALTH_REAL_OWNER_ID=replace-with-verified-site-scoped-owner-id
+# HEALTH_REAL_CONSENT_VERSION=owner-photos-structured-v1
