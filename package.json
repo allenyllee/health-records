@@ -15,9 +15,10 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "node --import ./scripts/local-runtime.mjs ./node_modules/wrangler/bin/wrangler.js d1 migrations apply DB --local --persist-to .wrangler/state --config wrangler.local.jsonc",
     "test": "node tests/run.mjs",
-    "test:integration": "node tests/integration.mjs",
+    "test:integration": "node tests/integration.mjs && node tests/batch-integration.mjs",
     "test:races": "node tests/store-races.mjs",
     "test:events": "node tests/event-discovery.mjs",
+    "test:built-widget": "node tests/production-widget.mjs",
     "typecheck": "tsc --noEmit",
     "audit:source": "node scripts/audit-public-source.mjs"
   },

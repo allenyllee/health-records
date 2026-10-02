@@ -6,3 +6,7 @@ export const healthEvents=sqliteTable('health_events',{id:text('id').primaryKey(
 
 // Isolated non-health compatibility diagnostics; no image, callback or secret fields.
 export const healthTransportProbes=sqliteTable('health_transport_probes',{id:text('id').primaryKey(),ownerId:text('owner_id').notNull(),status:text('status').notNull(),result:text('result'),createdAt:text('created_at').notNull()});
+
+// Batch payload contains all reviewed sessions/metrics; one row prevents partial confirmed saves.
+export const healthBatchDrafts=sqliteTable('health_batch_drafts',{id:text('id').primaryKey(),ownerId:text('owner_id').notNull(),namespace:text('namespace').notNull(),requestKey:text('request_key').notNull(),digest:text('digest').notNull(),payload:text('payload').notNull(),status:text('status').notNull(),createdAt:text('created_at').notNull()},t=>[uniqueIndex('batch_draft_idempotency').on(t.ownerId,t.namespace,t.requestKey)]);
+export const healthBatches=sqliteTable('health_batches',{id:text('id').primaryKey(),ownerId:text('owner_id').notNull(),namespace:text('namespace').notNull(),requestKey:text('request_key').notNull(),digest:text('digest').notNull(),payload:text('payload').notNull(),createdAt:text('created_at').notNull(),deletedAt:text('deleted_at'),updatedAt:text('updated_at')},t=>[uniqueIndex('batch_idempotency').on(t.ownerId,t.namespace,t.requestKey)]);

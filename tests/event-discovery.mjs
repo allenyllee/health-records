@@ -18,7 +18,7 @@ r=await call('events/subscribe',{...args,arguments:{scope:'synthetic_probe',extr
 r=await call('events/unsubscribe',args,'probe-owner');ok('unsubscribe no-op succeeds without database',()=>assert.deepEqual(r.result,{resultType:'complete'}));
 r=await call('events/unsubscribe',args,'other-owner');ok('unsubscribe owner protection',()=>assert.equal(r.status,403));
 r=await call('events/list',{},undefined,'https://evil.example');ok('cross-origin discovery rejected',()=>assert.equal(r.status,403));
-r=await call('tools/list');ok('existing seven tools unchanged',()=>assert.equal(r.result.tools.length,7));
+r=await call('tools/list');ok('legacy tools preserved and batch tools appended',()=>{assert.equal(r.result.tools.length,11);for(const name of ['open_health_dashboard','list_health_records','capture_health_record','create_health_draft','confirm_health_draft','delete_health_record','restore_health_record'])assert.ok(r.result.tools.some(t=>t.name===name));});
 r=await call('initialize');ok('legacy host initialization preserved',()=>assert.equal(r.result.protocolVersion,'2025-06-18'));
 r=await call('tools/list',{},undefined,undefined,'2026-07-28');ok('MCP 2.0 nonempty result discriminant',()=>{assert.equal(r.result.resultType,'complete');assert.equal(r.result.cacheScope,'private');assert.equal(r.result.ttlMs,0);});
 r=await call('tools/list');ok('legacy tool result kept compatible',()=>assert.equal(r.result.resultType,undefined));

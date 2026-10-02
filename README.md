@@ -1,6 +1,6 @@
 # Private Health Records · 健康紀錄
 
-A Traditional Chinese/English health-record dashboard with bodyweight and strength-training records, an interactive ChatGPT MCP interface, structured date provenance, drafts, reversible deletion, and JSON export.
+A Traditional Chinese/English health-record dashboard with bodyweight and strength-training records, an interactive ChatGPT MCP interface, bounded multi-image/multi-session review, typed scale metrics, structured capture/measurement provenance, drafts, reversible deletion, and JSON export.
 
 **Source snapshot:** the running deployment remains private and separate from this source. Original code and associated documentation are licensed under [MIT](LICENSE). See [LICENSE-STATUS.md](LICENSE-STATUS.md) for scope and third-party terms.
 
@@ -21,8 +21,9 @@ Read the bilingual [expected user scenarios](docs/image-upload-scenarios.md) for
 the included synthetic scale test card, workout-screenshot scenarios,
 review/consent/retry/correction, Auto/manual language behavior and the distinction between current D1 functionality
 and planned standalone plan-backed analysis/common Library or Space storage. The
-standalone app currently offers manual entry and ChatGPT upload guidance, not an
-automatic image-analysis endpoint. This document supports the pending official
+standalone app provides local multiple-photo metadata inspection and manual session
+review with atomic D1 batch save, plus ChatGPT upload guidance. It has no automatic
+standalone image-analysis endpoint or approved plan-backed inference route. This document supports the pending official
 access application; it does not claim approval or alter a running deployment.
 
 ## Privacy and scope
@@ -64,6 +65,7 @@ npm run test:events
 npm run typecheck
 npm run lint
 npm run build
+npm run test:built-widget
 npm run audit:source
 ```
 
@@ -78,6 +80,16 @@ The current runtime targets Cloudflare Workers/D1 through Vite and Vinext. Produ
 Opening the source does not make a deployment public, establish eligibility for any external program, grant ChatGPT model tokens, or enable inference outside a supported host. Verify any external program's current official requirements separately.
 
 ## Features and limits
+
+- Batch input supports 8 photos/screenshots, 10 MB each / 30 MB originals total, 40 MB sanitized pixels and 64 million decoded pixels total; 16 sessions / 64 observations per reviewed batch
+- One screenshot can supply multiple dated sessions; same-day sessions remain separate, with visible-date suggestions and explicit move/split/merge review
+- Typed skeletal/total muscle mass and percentages, explicit custom metrics, source/observation provenance, duplicate consolidation and conflict/exclusion review
+- Capture evidence stays separate from measurement date/time/precision/timezone; missing metadata stays unknown, no device-zone default, and DST ambiguity requires clarification
+- All photo analysis creates pending drafts. One explicit guarded, idempotent D1 confirmation saves every reviewed session atomically, then canonical readback verifies the full batch
+- Session reports/trends group matching metrics/units, preserve date-only precision, and exclude pending/deleted batches; batch deletion/restoration is explicit and reversible
+- Widget resource `ui://health/records-v5.html` is advertised; v4 resource reads remain compatible. Refresh tool metadata for the new batch tools
+- Migration `0003_measurement_batches.sql` adds two tables only; apply it before serving the new snapshot. Existing migrations, records and authorization are preserved
+
 
 - Bodyweight/body-fat and strength-training entry types
 - Draft correction and explicit confirmation, source-key idempotency, and owner-scoped audit events
