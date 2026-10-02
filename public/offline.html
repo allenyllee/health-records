@@ -1,1 +1,123 @@
-<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>健康紀錄 · 離線</title><style>body{font:18px/1.7 system-ui;max-width:500px;margin:20vh auto;padding:25px;color:#173355;background:#f4f7fb}a{color:#2266d7}</style><h1>目前離線</h1><p>連上網路後即可讀取私人紀錄。這個裝置不會離線快取健康資料。</p><a href="/">重新開啟</a></html>
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>You are offline</title><style>body{font:18px/1.7 system-ui;max-width:500px;margin:15vh auto;padding:25px;color:#173355;background:#f4f7fb}a{color:#2266d7}select{font:inherit}</style><label><span data-i18n="語言">Language</span> <select id="locale" aria-label="Language"><option value="auto" data-i18n="自動">Auto</option><option value="zh-Hant">繁體中文</option><option value="en">English</option></select></label><h1 data-i18n="offline.title">You are offline</h1><p data-i18n="offline.body">Health records need a connection to read or write. Health data is not cached on this device.</p><a href="/" data-i18n="重新開啟">Reopen</a><script>const runtime=(function createLocaleRuntime(messages) {
+  const supported = Object.keys(messages), fallback = "en";
+  function match(value) {
+    if (typeof value !== "string" || !value.trim()) return null;
+    try {
+      const candidate = new Intl.Locale(value.trim());
+      const exact = supported.find((code) => code.toLowerCase() === candidate.baseName.toLowerCase());
+      if (exact) return exact;
+      if (candidate.language === "zh" && supported.includes("zh-Hant")) {
+        if (candidate.script === "Hans" || ["CN", "SG"].includes(candidate.region || "") && candidate.script !== "Hant") return null;
+        return "zh-Hant";
+      }
+      return supported.find((code) => new Intl.Locale(code).language === candidate.language) || null;
+    } catch {
+      return null;
+    }
+  }
+  function resolve(preference, hostLocale, browserLocales = [], embedded = false) {
+    if (typeof preference === "string" && supported.includes(preference)) return preference;
+    if (embedded) {
+      const host = match(hostLocale);
+      if (host) return host;
+    }
+    for (const value of browserLocales) {
+      const browser = match(value);
+      if (browser) return browser;
+    }
+    return fallback;
+  }
+  function t(key, locale = "en", params = {}) {
+    const text = messages[locale]?.[key] ?? messages[fallback]?.[key] ?? key;
+    return text.replace(/\{([a-zA-Z]+)\}/g, (_, name) => String(params[name] ?? "{" + name + "}"));
+  }
+  function number(value, locale, digits) {
+    if (value === null || value === void 0 || !Number.isFinite(value)) return "\u2014";
+    return new Intl.NumberFormat(locale, digits === void 0 ? {} : { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value);
+  }
+  function date(value, locale, short = false) {
+    if (!value) return t("\u65E5\u671F\u5F85\u78BA\u8A8D", locale);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+    const stamp = /* @__PURE__ */ new Date(value + "T12:00:00Z");
+    if (!Number.isFinite(stamp.getTime()) || stamp.toISOString().slice(0, 10) !== value) return value;
+    return new Intl.DateTimeFormat(locale, { timeZone: "UTC", ...short ? {} : { year: "numeric" }, month: "short", day: "numeric" }).format(stamp);
+  }
+  function message(value, locale) {
+    if (messages[fallback]?.[value] !== void 0) return t(value, locale);
+    const englishKey = Object.keys(messages[fallback] || {}).find((key) => messages[fallback][key] === value);
+    if (englishKey) return t(englishKey, locale);
+    const uncertain = "\u8ACB\u6838\u5C0D\u4E26\u6E05\u9664\u4E0D\u78BA\u5B9A\u6B04\u4F4D\uFF1A";
+    if (value.startsWith(uncertain)) return t(uncertain, locale) + value.slice(uncertain.length);
+    const numeric = value.match(/^(weight|bodyfat|load|reps|sets) 必須是數字$/);
+    if (numeric) return t("field.number", locale, { field: t("field." + numeric[1], locale) });
+    if (value.includes("\uFF1B")) return value.split("\uFF1B").map((part) => message(part, locale)).join(locale === "en" ? "; " : "\uFF1B");
+    return value;
+  }
+  function demoText(value, locale, namespace) {
+    return namespace === "demo" && (value === "\u5408\u6210\u793A\u7BC4\u8CC7\u6599" || value === "\u6DF1\u8E72") ? t(value, locale) : value || "";
+  }
+  return { supported, match, resolve, t, number, date, message, demoText };
+})({"zh-Hant":{"語言":"語言","自動":"自動","健康紀錄":"健康紀錄","offline.title":"目前離線","offline.body":"健康紀錄需要連線才能讀寫。此裝置不快取健康資料。","重新開啟":"重新開啟"},"en":{"語言":"Language","自動":"Auto","健康紀錄":"Health records","offline.title":"You are offline","offline.body":"Health records need a connection to read or write. Health data is not cached on this device.","重新開啟":"Reopen"}});const controller=(function createLocaleController(w, runtime, embedded = false) {
+  const storageKey = "health-records.locale";
+  let preference = "auto", hostLocale = void 0;
+  const listeners = /* @__PURE__ */ new Set();
+  const read = () => {
+    try {
+      const stored = w.localStorage.getItem(storageKey);
+      return stored && runtime.supported.includes(stored) ? stored : "auto";
+    } catch {
+      return "auto";
+    }
+  };
+  preference = read();
+  if (embedded) hostLocale = w.openai?.locale;
+  const browser = () => w.navigator.languages?.length ? w.navigator.languages : [w.navigator.language];
+  const current = () => runtime.resolve(preference, hostLocale, browser(), embedded);
+  const emit = () => listeners.forEach((callback) => callback(current()));
+  const setPreference = (value) => {
+    preference = runtime.supported.includes(value) ? value : "auto";
+    try {
+      if (preference === "auto") w.localStorage.removeItem(storageKey);
+      else w.localStorage.setItem(storageKey, preference);
+    } catch {
+    }
+    emit();
+  };
+  const updateHostLocale = (value) => {
+    if (!embedded) return;
+    hostLocale = value;
+    emit();
+  };
+  const globals = (event) => {
+    const fields = event.detail?.globals;
+    if (fields && Object.prototype.hasOwnProperty.call(fields, "locale")) updateHostLocale(fields.locale);
+  };
+  const language = () => emit();
+  const storage = (event) => {
+    if (event.key === storageKey || event.key === null) {
+      preference = read();
+      emit();
+    }
+  };
+  w.addEventListener("languagechange", language);
+  w.addEventListener("storage", storage);
+  if (embedded) w.addEventListener("openai:set_globals", globals);
+  return {
+    current,
+    getPreference: () => preference,
+    setPreference,
+    updateHostLocale,
+    subscribe: (callback) => {
+      listeners.add(callback);
+      return () => {
+        listeners.delete(callback);
+      };
+    },
+    dispose: () => {
+      w.removeEventListener("languagechange", language);
+      w.removeEventListener("storage", storage);
+      w.removeEventListener("openai:set_globals", globals);
+      listeners.clear();
+    }
+  };
+})(window,runtime,false);function paint(){const locale=controller.current();document.documentElement.lang=locale;document.title=runtime.t('offline.title',locale);document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=runtime.t(el.dataset.i18n,locale));const select=document.getElementById('locale');select.value=controller.getPreference();select.setAttribute('aria-label',runtime.t('語言',locale));}controller.subscribe(paint);document.getElementById('locale').onchange=event=>controller.setPreference(event.target.value);paint();</script></html>

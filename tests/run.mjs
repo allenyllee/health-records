@@ -1,8 +1,10 @@
-import {build} from 'esbuild';import {spawnSync} from 'node:child_process';
+import {build} from 'esbuild';import {spawnSync} from 'node:child_process';import {resolve} from 'node:path';
 await build({entryPoints:['lib/health.ts'],bundle:true,platform:'node',format:'esm',outfile:'.sites-runtime/health-model.mjs'});
 await build({entryPoints:['lib/widget-bridge.ts'],bundle:true,platform:'node',format:'esm',outfile:'.sites-runtime/widget-bridge.mjs'});
 await build({entryPoints:['lib/widget.ts'],bundle:true,platform:'node',format:'esm',outfile:'.sites-runtime/widget.mjs'});
 await build({entryPoints:['lib/photo-metadata.ts'],bundle:true,platform:'node',format:'esm',outfile:'.sites-runtime/photo-metadata.mjs'});
 await build({entryPoints:['lib/date-evidence.ts'],bundle:true,platform:'node',format:'esm',outfile:'.sites-runtime/date-evidence.mjs'});
 await build({entryPoints:['lib/site-config.ts'],bundle:true,platform:'node',format:'esm',outfile:'.sites-runtime/site-config.mjs'});
-const r=spawnSync(process.execPath,['--test','tests/site-config.test.mjs','tests/model.test.mjs','tests/widget-bridge.test.mjs','tests/widget-chart.test.mjs','tests/photo-metadata.test.mjs'],{stdio:'inherit'});process.exit(r.status??1);
+await build({entryPoints:['lib/i18n.ts'],bundle:true,platform:'node',format:'esm',outfile:'.sites-runtime/i18n.mjs'});
+await build({entryPoints:['app/dashboard.tsx'],jsx:'automatic',bundle:true,platform:'node',format:'esm',packages:'external',outfile:'.sites-runtime/dashboard-smoke.mjs',plugins:[{name:'locale-presentation-smoke',setup(b){b.onResolve({filter:/^@\/lib\/use-locale$/},()=>({path:'use-locale',namespace:'locale-smoke'}));b.onLoad({filter:/.*/,namespace:'locale-smoke'},()=>({contents:`export function useLocale(){return {locale:globalThis.__healthLocale||'en',preference:'auto',setPreference:()=>{}};}`}));b.onResolve({filter:/^@\//},args=>({path:resolve(args.path.replace('@/','')+(args.path.includes('components/')?'.tsx':'.ts'))}));}}]});
+const r=spawnSync(process.execPath,['--test','tests/site-config.test.mjs','tests/model.test.mjs','tests/widget-bridge.test.mjs','tests/widget-chart.test.mjs','tests/photo-metadata.test.mjs','tests/i18n.test.mjs'],{stdio:'inherit'});process.exit(r.status??1);
